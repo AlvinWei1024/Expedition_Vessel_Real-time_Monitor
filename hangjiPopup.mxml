@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml">
+
+    <mx:Script>
+		<![CDATA[
+        //			[Bindable]
+        //			public var ddate:Date = new Date();
+        //			[Bindable]
+        //			public var ddate2:Date = new Date()["date"]-1;
+        //ddate2["date"]-=1;
+        ]]>
+	</mx:Script>
+    <mx:VBox>
+        <mx:Label text="选择起始时间：" fontSize="12" color="#fefeff" textAlign="left"/>
+        <mx:HBox>
+            <mx:DateField formatString="YYYY/MM/DD" id="startDate" yearNavigationEnabled="true"/>
+            <mx:NumericStepper id="starthr" borderStyle="solid" minimum="0" maximum="23" maxChars="2" stepSize="1"/>
+            <mx:Label text="时" fontSize="12" color="#fefeff" textAlign="left"/>
+        </mx:HBox>
+        <mx:HBox>
+            <mx:DateField formatString="YYYY/MM/DD" id="stopDate" yearNavigationEnabled="true"/>
+            <mx:NumericStepper id="stophr" borderStyle="solid" minimum="0" maximum="23" maxChars="2" stepSize="1"/>
+            <mx:Label text="时" fontSize="12" color="#fefeff" textAlign="left"/>
+        </mx:HBox>
+    </mx:VBox>
+</mx:Canvas>

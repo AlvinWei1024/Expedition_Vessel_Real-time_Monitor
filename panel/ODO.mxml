@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 initialize="initi()"  width="300" height="150">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:WebService wsdl="http://202.121.66.51:808/Service_fbc.asmx?wsdl" id="bdwc" useProxy="false">
+			
+			<s:operation name="getInfobyId"
+						 fault="faultmsg(event)"
+						 result="getInfobyId(event)"/>
+		</s:WebService>
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import flashx.textLayout.formats.Float;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.*;
+			private var result_Info:Array = new Array;//返回结果数据
+			public var flag:int;
+			
+			public var timer:Timer = new Timer(5000);
+			
+			public function initi():void
+			{
+				init();
+				timer.addEventListener(TimerEvent.TIMER, timeHandler);
+				timer.start();
+			}
+			
+			public function init():void {
+				//获取WESTHER表信息
+				var strSqlWService4:String = "select * from (select t_log, WINDANGLE,BAROMETRIC,HUMIDITY from hd_WEATHER order by t_log DESC) where rownum=1";
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService4));
+				
+				
+			}
+			
+			public function timeHandler(evt:TimerEvent):void {
+				init();	
+			}
+			private function faultmsg(event:FaultEvent):void {
+				Alert.show(event.message.toString());
+			}
+			
+			protected function getInfobyId(event:ResultEvent):void {
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				if (result_Info.length > 0) {
+					if (result_Info[0].hasOwnProperty("WINDANGLE")) 
+					{
+						//lb7.text = result_Info[0].WINDANGLE;
+						
+						var presstring:String = result_Info[0].BAROMETRIC as String;
+						var presstringarray:Array = presstring.split('.');
+						
+						
+						
+						
+						var fomartNum:stand_num=new stand_num();
+						var press_s:String =fomartNum.fomart_num(presstringarray[0],4);
+						
+						var getimg:getNumImg=new getNumImg();
+						getimg.removeElements(group_img);
+						getimg.get_NumImg(press_s,group_img,23);
+						
+						var img_p:Image=new Image();
+						img_p.source= "images/point.png";
+						img_p.width=23;
+						group_img.addElement(img_p);
+						
+						var pressfinal_s:String=fomartNum.fomart_num(presstringarray[1],1);
+						getimg.get_NumImg(pressfinal_s,group_img,23);
+						
+						/*	var lab1:Label=new Label();
+						lab1.text=" hPa";
+						group_img.addElement(lab1);
+						*/	
+						
+						
+						
+						var HUMIDITY_s:String =fomartNum.fomart_num(result_Info[0].HUMIDITY,3);
+						
+						getimg.removeElements(group_img1);
+						getimg.get_NumImg(HUMIDITY_s,group_img1,23);
+						var img_pe:Image=new Image();
+						img_pe.source= "images/percent.png";
+						img_pe.width=23;
+						group_img1.addElement(img_pe);
+						
+					}
+				}
+				
+			}
+			
+			
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	<s:VGroup paddingTop="5">
+		<s:HGroup paddingLeft="5">
+			<s:Image source="images/Icons/weather.png" width="45" height="45" horizontalCenter="true"></s:Image>
+			<s:Label width="200" text="里程信息(海里)" fontSize="15" paddingTop="15"/>
+		</s:HGroup>
+		<s:Label paddingLeft="25" paddingTop="10" text="本次队里程： " fontSize="12" />
+		<s:Group>
+			<s:Rect height="51" width="190" x="70" y="-37">
+				<s:fill>
+					<s:BitmapFill source="@Embed('images/numBack.png')"/>
+				</s:fill>
+			</s:Rect>
+			<s:HGroup paddingLeft="82" paddingTop="-45" id="group_img" >
+			</s:HGroup>
+		</s:Group>
+		
+		
+		<s:Label paddingLeft="25" paddingTop="10" text="总里程： " fontSize="12" />
+		<s:Group>
+			<s:Rect height="51" width="132" x="70" y="-37">
+				<s:fill>
+					<s:BitmapFill source="@Embed('images/numBack.png')"/>
+				</s:fill>
+			</s:Rect>
+			<s:HGroup paddingLeft="82" paddingTop="-45" id="group_img1" >
+			</s:HGroup>
+		</s:Group>
+	</s:VGroup>
+</s:Group>

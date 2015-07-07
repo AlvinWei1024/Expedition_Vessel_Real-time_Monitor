@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+         xmlns:s="library://ns.adobe.com/flex/spark"
+         width="310" height="122" initialize="init(event)">
+    <fx:Declarations>
+
+    </fx:Declarations>
+
+    <fx:Script>
+		<![CDATA[
+        import mx.events.DragEvent;
+        import mx.events.FlexEvent;
+
+        import shou.*;
+
+        private var result_Info:Array = new Array;//返回结果数据
+        private var xmlOper:XMLOperator = new XMLOperator();
+        [Bindable]
+        public var d1_info:String;
+        public var result_len:int;
+        [Bindable]
+        public var data:Staff_Info;
+
+
+        protected function init(event:FlexEvent):void {
+            // TODO Auto-generated method stub
+
+            var loader:Loader = new Loader();
+            var ImageSource:String = data.PicURL;
+            loader.contentLoaderInfo.addEventListener(Event.COMPLETE, function (e:Event):void {
+                //获取已加载图片的url地址；
+                img1.source = (e.target.content as Bitmap).bitmapData;
+            });
+            loader.load(new URLRequest(ImageSource));
+
+            txtA1.text = "姓名:" + data.Name + "\n" + "性别:" + data.Sex + "\n" + "专业:" + data.Major + "\n" + "单位:" + data.Unit;
+
+
+        }
+
+
+        public function bc1_dragCompleteHandler(event:DragEvent):void {
+            // TODO Auto-generated method stub
+
+        }
+        ]]>
+	</fx:Script>
+
+    <s:BorderContainer id="bc1" dragComplete="bc1_dragCompleteHandler(event)">
+        <s:HGroup width="100%" height="100%" left="5">
+            <s:Image x="0" y="0" width="134" height="121" id="img1"/>
+            <s:TextArea id="txtA1" width="169" height="121" borderVisible="false" fontSize="15"/>
+        </s:HGroup>
+    </s:BorderContainer>
+</s:Group>

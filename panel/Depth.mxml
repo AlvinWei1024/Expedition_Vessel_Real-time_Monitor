@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:anychart="com.anychart.*"
+		 initialize="initi()"
+		 width="300" height="255">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:WebService id="bdwc" useProxy="false">
+			
+			<s:operation name="getInfobyId"
+						 fault="faultmsg(event)"
+						 result="getInfobyId(event)"/>
+		</s:WebService>
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			import com.anychart.events.EngineEvent;
+			
+			import flashx.textLayout.formats.Float;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.*;
+			
+			private var result_Info:Array = new Array;//返回结果数据
+			private var xmlOper:XMLOperator = new XMLOperator();
+			public var flag:int;
+			public var timer:Timer = new Timer(5000);
+            public var url:String;
+
+			public function initi():void
+			{
+                this.bdwc.wsdl = this.url;
+                init();
+				timer.addEventListener(TimerEvent.TIMER, timeHandler);
+				timer.start();
+			}
+			public function init():void {
+				//获取ENGINE表信息
+				var strSqlWService3:String = "select * from (select depth,to_char(UTC,'yyyy/MM/dd HH24:mi:ss') AS T_LOG from CJ_TEMP_depth where depth>0 order by t_log DESC) where rownum<16";
+				
+				//var strSqlWService3:String = "select * from (select depth,to_char(T_LOG,'yyyy/MM/dd HH24:mi:ss') AS T_LOG from CJ_TEMP_DEPTH where depth>0 order by t_log DESC) where rownum<16";
+				
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService3));
+			}
+			public function timeHandler(evt:TimerEvent):void {
+				init();
+			}
+			
+			private function faultmsg(event:FaultEvent):void {
+				Alert.show(event.message.toString());
+			}
+			
+			protected function getInfobyId(event:ResultEvent):void {
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				if (result_Info.length > 0) {
+					
+					//var b1:String=result_Info[0].DEPTH.toString();
+					//var a2:String=result_Info[1].T_LOG.toString();
+			     chart.anychartXML=(generateData());	
+				}
+				
+			}
+			
+		public function generateData():XML {
+				var res:XML = <anychart>
+				                <settings>
+						           <animation enabled="False" />
+				                </settings>
+				                <charts>
+				                  <chart plot_type="CategorizedVertical">
+					               <chart_settings>
+					                 <title>
+						               <text></text> 
+		                             </title>
+                                     <chart_background enabled="false"/> 
+		                             <axes>
+			                          <x_axis tickmarks_placement="Center">
+                                        <title enabled="false"/>
+                                        <labels display_mode="Normal" rotation="45" >
+                                        </labels>
+                                      </x_axis>
+			                          <y_axis>
+				                        <scale inverted="True" />
+                                        <title enabled="false"/>
+                                        <labels>
+                                          <format>{"{%Value}{numDecimals:1}m"}</format>
+						                </labels>
+					                  </y_axis>
+					                 </axes>
+				                   </chart_settings>
+				<data_plot_settings default_series_type="Area">
+				  <area_series>
+					<marker_settings enabled="True">
+					  <marker type="Circle" size="6" />
+					</marker_settings>
+					<tooltip_settings enabled="True">
+					  <format>{"{%YValue}{numDecimals:1}"}</format>
+					</tooltip_settings>
+				  </area_series>
+				</data_plot_settings>
+				<data>
+				  <series name="Series1">
+				  </series>
+				</data>
+			 </chart>
+		  </charts>
+     </anychart>;
+				
+				for (var i:int = 1;i<16;i++) 
+				{
+					res.charts[0].chart[0].data[0].series[0].point += <point name={result_Info[result_Info.length-i].T_LOG.toString().substr(5,11)} y={result_Info[result_Info.length-i].DEPTH.toString()} />;
+				}
+				return res;
+			}
+		
+			
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup paddingTop="5">
+		<s:HGroup paddingLeft="5">
+			<s:Image source="images/Icons/IconWaterDeep.png" width="40" height="40" horizontalCenter="true"></s:Image>
+			<s:Label width="90" text="水深信息(m)" fontSize="15" paddingTop="15"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="-18" paddingTop="-50">
+			<anychart:AnyChartFlex x="0" y="0" width="335" height="300" id="chart"/>
+			
+		</s:HGroup>
+		<s:HGroup paddingLeft="25">
+			
+		</s:HGroup>
+	</s:VGroup>
+</s:Group>

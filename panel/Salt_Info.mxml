@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 initialize="initi()" 
+		 width="300" height="100">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:WebService id="bdwc" useProxy="false">
+			
+			<s:operation name="getInfobyId"
+						 fault="faultmsg(event)"
+						 result="getInfobyId(event)"/>
+		</s:WebService>
+		
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import flashx.textLayout.formats.Float;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.*;
+			
+			import spark.components.Button;
+			
+			private var result_Info:Array = new Array;//返回结果数据
+			
+			
+			public var flag:int;
+			public var timer:Timer = new Timer(5000);
+            public var url:String;
+			
+			public function initi():void
+			{
+                this.bdwc.wsdl = this.url;
+				init();
+				timer.addEventListener(TimerEvent.TIMER, timeHandler);
+				timer.start();
+			}
+			public function init():void {
+				
+				//获取DEPTH表信息
+				//var strSqlWService2:String = "select * from (select t_log, SALT from hd_SBE order by t_log DESC) where rownum=1";
+				var strSqlWService2:String = "select * from (select T_LOG, SALT from CJ_TEMP_SBE21 order by T_LOG DESC) where rownum=1";
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService2));			
+			}
+			
+			public function timeHandler(evt:TimerEvent):void {
+				init();
+				
+			}
+			
+			private function faultmsg(event:FaultEvent):void {
+				Alert.show(event.message.toString());
+			}
+			
+			protected function getInfobyId(event:ResultEvent):void 
+			{
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				if (result_Info.length > 0) 
+				{
+					
+					if (result_Info[0].hasOwnProperty("SALT")) 
+					{
+						//						tx2.text="时间:"+result_Info[0].T_LOG+"\n"+"水深:"+result_Info[0].DEPTH+"";
+						
+						var saltstring:String = result_Info[0].SALT as String;                              //盐度
+						if(saltstring=="-999"||saltstring=="-9999") saltstring="0";
+						var salttringarray:Array = saltstring.split('.');
+						
+						var fomartNum:stand_num=new stand_num();
+						var salt_s:String=fomartNum.fomart_num(salttringarray[0],2);
+						var saltfinal_s:String=fomartNum.fomart_num(salttringarray[1],3);
+						
+						var getimg:getNumImg=new getNumImg();
+						getimg.removeElements(group_img1);
+						getimg.get_NumImg(salt_s,group_img1,23);
+						
+						var img_p:Image=new Image();
+						img_p.source= "images/point.png";
+						img_p.width=23;
+						group_img1.addElement(img_p);
+						
+						getimg.get_NumImg(saltfinal_s,group_img1,23);
+						
+						//
+						
+						/*	var lab1:Label=new Label();
+						lab1.text=" PSU";
+						group_img.addElement(lab1);
+						*/	
+						//
+						
+						
+						//
+						
+					}
+					
+				}
+				else if(result_Info.length == 0)
+				{
+					
+					var saltstring:String ="0";                              //盐度
+					var salttringarray:Array = saltstring.split('.');
+					
+					var fomartNum:stand_num=new stand_num();
+					var salt_s:String=fomartNum.fomart_num(salttringarray[0],2);
+					var saltfinal_s:String=fomartNum.fomart_num(salttringarray[1],3);
+					
+					var getimg:getNumImg=new getNumImg();
+					getimg.removeElements(group_img1);
+					getimg.get_NumImg(salt_s,group_img1,23);
+					
+					var img_p:Image=new Image();
+					img_p.source= "images/point.png";
+					img_p.width=23;
+					group_img1.addElement(img_p);
+					
+					getimg.get_NumImg(saltfinal_s,group_img1,23);
+				}
+				
+			}
+			
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup paddingTop="10">
+		<s:HGroup paddingLeft="5">
+			<s:Image source="images/Icons/salt.png" width="40" height="40" horizontalCenter="true"></s:Image>
+			<s:Label width="200" text="盐度信息(PSU)" fontSize="15" paddingTop="15"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="5">
+		<s:Label  paddingLeft="5" paddingTop="12" text="盐度： " fontSize="12" />
+		
+		<s:Group>
+			<s:Rect height="51" width="192" x="10" y="-3">
+				<s:fill>
+					<s:BitmapFill source="@Embed('images/numBack.png')"/>
+				</s:fill>
+			</s:Rect>
+			<s:HGroup paddingLeft="22" paddingTop="-10" id="group_img1" >
+			</s:HGroup>
+		</s:Group>
+	</s:HGroup>
+	</s:VGroup>
+</s:Group>

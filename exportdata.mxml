@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+               xmlns:s="library://ns.adobe.com/flex/spark"
+               xmlns:mx="library://ns.adobe.com/flex/mx"
+               minWidth="585" minHeight="522" creationComplete="init()" initialize="initi()"  title="航迹下载"
+               close="PopUpManager.removePopUp(this);">
+
+    <fx:Declarations>
+        <s:WebService id="bdwc" useProxy="false"
+                      showBusyCursor="true">
+            <s:operation name="getInfobyId"
+                         fault="faultmsg(event)"
+                         result="getInfobyId(event)"/>
+
+
+        </s:WebService>
+        <mx:DateFormatter id="publishDate" formatString="YYYYMM"/>
+
+
+    </fx:Declarations>
+
+
+    <fx:Script>
+		<![CDATA[
+        import com.adobe.serialization.json.JSON;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.Alert;
+        import mx.controls.dataGridClasses.DataGridColumn;
+        import mx.controls.sliderClasses.Slider;
+        import mx.events.SliderEvent;
+        import mx.formatters.DateFormatter;
+        import mx.managers.PopUpManager;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+
+        import shou.*;
+
+        //只有当鼠标移动时才显示游标
+        private var xmlOper:XMLOperator = new XMLOperator();
+        private var dateFormatter:DateFormatter = new DateFormatter();
+        public var d1_info:String;
+        private var jishi:Timer;
+        private var j:int = 0;
+        private var flag_attri:int;//功能执行标记
+        private var hjpoint1:String;//绑定HJ条端点
+        private var hjpoint2:String;
+        
+        private var startAndEndValues:Array;
+        //private var start_Date:Date;//选择的开始时间
+        //private var end_Date:Date;//选择的结束时间
+        private const TICK_INTERVAL:uint = 20;
+        public var url:String;
+
+        [Bindable]
+        private var start_Date:String;//选择的开始时间
+        private var end_Date:String;//选择的结束时间
+        private var TimeArr:ArrayCollection = new ArrayCollection();
+        private var NameArr:ArrayCollection = new ArrayCollection();
+        private var HJArr:ArrayCollection = new ArrayCollection();
+        private var result_Info:Array = new Array; //返回结果数据
+        [Bindable]
+
+        //	private var displayLabels:Array=[0,1,2,3,4,5,6];
+        //private var startAndEndValues:Array=new Array;
+        public var hangji_time:Array = new Array("TO_CHAR(thumbTwoA.text, 'yyyy-mm-dd hh24:mi:ss')", "TO_CHAR(thumbTwoB.text, 'yyyy-mm-dd hh24:mi:ss')");
+
+
+        /* public var hangji:ArrayCollection = new ArrayCollection([
+         {label:"S29",data:0},{label:"S28",data:1},{label:"S27",data:2},{label:"S26",data:3},{label:"S25",data:4},{label:"S24",data:5},
+         {label:"S22",data:6},{label:"S21",data:7},{label:"S19",data:8},{label:"S18",data:9},{label:"S16",data:10},{label:"S15",data:11},
+         {label:"S14",data:12},{label:"S13",data:13},{label:"S12",data:14},{label:"S11",data:15},{label:"S9",data:16},{label:"S8",data:17},
+         {label:"S7",data:18},{label:"S6",data:19},{label:"S5",data:20},{label:"S3",data:21},{label:"S1",data:22},{label:"N5",data:23},
+         {label:"N4",data:24},{label:"N3",data:25},{label:"N2",data:26},{label:"N1",data:27}
+         ]);
+         */
+
+
+        [Bindable]
+
+        private function init():void {
+            flag_attri = 3;
+            var strSqlWService8:String = "select missionname as NAME from hd_mission where id in(select missionid from hd_GPS) order by id ASC";
+            //var strSqlWService8:String="select hd_mission。missionname as NAME from  hd_mission,hd_gps where hd_gps.missionid=hd_mission.id";
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService8));
+            bindHJArr();
+            slider2.visible = true;
+            slider.visible = false;
+
+        }
+
+        public function initi():void
+        {
+            this.bdwc.wsdl = this.url;
+        }
+        //导出为XLS
+        private function exportToExcel():void {
+            new Excel(mydata).exportExcel();
+        }
+
+        //导出为CSV
+        private function exportToCSV():void {
+            new CSV(mydata).exportCSV();
+        }
+
+
+        private function faultmsg(event:FaultEvent):void {
+            Alert.show(event.message.toString());
+        }
+
+        protected function getInfobyId(event:ResultEvent):void {
+            result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+
+            /* if(result_Info.length>0){
+             d1.text="当前时间为:"+result_Info[0].T_LOG+";"+"\n"+"调查船当前位置为:"+result_Info[0].LATITUDE+"  "+result_Info[0].LONGITUDE+";"+"\n"+"当前位置的航向为："+result_Info[0].BEARING+"。";
+
+             }   */
+
+
+            if (result_Info.length > 0) {
+                switch (flag_attri) {
+                    case 0:
+                    {
+
+                        bindTimeArr();
+                        break;
+                    }
+
+                    case 1:
+                    {
+                        bindTimeArr();
+                        break;
+                    }
+                    case 2:
+                    {
+                        mydata.dataProvider = result_Info;
+                        break;
+                    }
+                    case 3:
+                    {
+
+                        if (result_Info.length > 0) {
+                            for (var i:int = 0; i < result_Info.length; i++) {
+                                // TimeArr.addItemAt(result_Info[i].T_LOG,i);
+                                //NameArr.addItem(result_Info[i].NAME);
+                                // TimeArr.getItemAt(0,20);
+                                //if(NameArr.contains(result_Info[i].NAME))
+                                //continue;
+                                //else
+                                //NameArr.addItem(result_Info[i].NAME);
+
+                                var obj:Object = new Object();
+                                obj.label = result_Info[i].NAME;
+                                obj.data = i;
+                                NameArr.addItem(obj);
+                            }
+                            bindHJArr();
+                        }
+
+                        //hj_cb.dataProvider = NameArr;
+                        //hj_cb.labelField="label";
+
+
+                        break;
+                    }
+
+                }
+
+
+            }
+
+
+        }
+
+			protected function bindHJArr():void //绑定航迹时间条
+			{
+				if(result_Info.length>0)
+				{
+					for(var i:int=0;i<result_Info.length;i++)
+					{
+						// TimeArr.addItemAt(result_Info[i].T_LOG,i);
+						HJArr.addItem(result_Info[i].NAME);	
+						// TimeArr.getItemAt(0,20);
+						if(HJArr.contains(result_Info[i].NAME))
+							continue;
+						else
+							HJArr.addItem(result_Info[i].NAME);	
+					}
+					
+					slider2.maximum=HJArr.length-1;
+					slider2.setThumbValueAt(0,slider2.minimum);  //此方法可设置滑块的值，并更新显示。
+					slider2.setThumbValueAt(1,slider2.maximum);
+					//slider.tickInterval=10;
+					slider2.labels=[HJArr.getItemAt(0).toString(),HJArr.getItemAt(slider2.maximum).toString()];
+					
+				}
+			}
+
+
+			protected function bindTimeArr():void //绑定时间条
+			{
+				
+				var firstDate:Date = new Date();
+				firstDate.setDate(firstDate.getDate());
+				
+				if(result_Info.length>0)
+				{
+					for(var i:int=0;i<result_Info.length;i++)
+					{
+						
+						
+						// TimeArr.addItemAt(result_Info[i].T_LOG,i);
+						TimeArr.addItem(result_Info[i].DATETIME);	
+						// TimeArr.getItemAt(0,20);
+						if(TimeArr.contains(result_Info[i].DATETIME))
+							continue;
+						else
+							TimeArr.addItem(result_Info[i].DATETIME);	
+						
+					}
+					
+					slider.maximum=TimeArr.length-1;
+					slider.setThumbValueAt(0,slider.minimum);  //此方法可设置滑块的值，并更新显示。
+					slider.setThumbValueAt(1,slider.maximum);
+					//slider.tickInterval=10;
+					slider.labels=[TimeArr.getItemAt(0).toString(),TimeArr.getItemAt(slider.maximum).toString()];
+					
+				}
+				
+				
+			}
+
+			protected function click_Handler(event:MouseEvent):void{
+				
+				
+				flag_attri=2;
+				//var strSqlWService2:String="select to_char(t_log,'yyyy-mm-dd hh:mi:ss') as DATETIME, latitude, longitude,bearing from hd_gps where to_char(t_log,'yyyy-mm-dd hh24:mi:ss') between  '"+hangji_time[0]+"' and'"+hangji_time[1]+"'";
+				var strSqlWService2:String="select to_char(T_LOG,'yyyy-mm-dd hh24:mi:ss') as DATETIME, latitude, longitude,bearing from hd_gps where to_char(T_LOG,'yyyy-mm-dd hh24:mi:ss') between  '"+thumbTwoA.text+"' and'"+thumbTwoB.text+"'";
+				//var strSqlWService2:String="select t_log as DATETIME , latitude, longitude,bearing from hd_gps where t_log between '"+thumbTwoA.text+"' and'"+thumbTwoB.text+"'";
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService2)); 
+				
+				
+				//mydata.dataProvider=result_Info;
+				
+				
+			}
+
+        /* public function hj_cbHandler(event:Event):void
+         {
+
+         slider2.visible=false;
+         slider.visible=true;
+
+         if(this.hj_cb.selectedItem.label== "中国第1次南极科学考察"){
+
+         flag_attri=0;
+         result_Info=[];
+         HJArr.removeAll();
+         TimeArr.removeAll();
+         //var strSqlWService1:String="select t_log as DATETIME, latitude, longitude,bearing from hd_gps where DATETIME between start_Date and  end_Date ";
+         var strSqlWService1:String="select hd_gps.t_log as DATETIME , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第1次南极科学考察'";
+         //select hd_gps.t_log , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第1次南极科学考察';
+         bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService1));
+         bindTimeArr();
+         trace ("this.hj_cb.selectedItem.label");
+
+
+         }
+         else if (this.hj_cb.selectedItem.label== "中国第12次南极科学考察"){
+         result_Info=[];
+         TimeArr.removeAll();
+         flag_attri=1;
+         var strSqlWService3:String="select hd_gps.t_log as DATETIME , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第12次南极科学考察'";
+         bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService3));
+         bindTimeArr();
+         }
+         else if(this.hj_cb.selectedItem.label== "中国第11次南极科学考察"){
+         result_Info=[];
+         TimeArr.removeAll();
+         flag_attri=1;
+         var strSqlWService4:String="select hd_gps.t_log as DATETIME , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第11次南极科学考察'";
+         bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService4));
+         bindTimeArr();
+         }
+         else if(this.hj_cb.selectedItem.label== "中国第18次南极科学考察"){
+         result_Info=[];
+         TimeArr.removeAll();
+         flag_attri=1;
+         var strSqlWService5:String="select hd_gps.t_log as DATETIME , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第18次南极科学考察'";
+         bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService5));
+         bindTimeArr();
+         }
+         else if(this.hj_cb.selectedItem.label== "中国第19次南极科学考察"){
+         result_Info=[];
+         TimeArr.removeAll();
+         flag_attri=1;
+         var strSqlWService6:String="select hd_gps.t_log as DATETIME , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第19次南极科学考察'";
+         bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService6));
+         bindTimeArr();
+         }
+         else if(this.hj_cb.selectedItem.label== "中国第26次南极科学考察"){
+         result_Info=[];
+         TimeArr.removeAll();
+         flag_attri=1;
+         var strSqlWService7:String="select hd_gps.t_log as DATETIME , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第26次南极科学考察'";
+         bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService7));
+         bindTimeArr();
+         }
+
+         }  */
+
+			public function hj_cbHandler(event:Event):void
+			{
+				slider2.visible=false;
+				slider.visible=true;
+				if(this.hj_cb.selectedItem.label){
+					flag_attri=0;
+					result_Info=[];
+					TimeArr.removeAll();
+					//var strSqlWService1:String="select t_log as DATETIME, latitude, longitude,bearing from hd_gps where DATETIME between start_Date and  end_Date ";
+					var strSqlWService1:String="select to_char(hd_gps.T_LOG,'yyyy-mm-dd hh24:mi:ss') as DATETIME , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='"+this.hj_cb.selectedItem.label+"'order by DATETIME ASC";
+					//select hd_gps.t_log , hd_gps.latitude, hd_gps.longitude,hd_gps.bearing from hd_gps, hd_mission where hd_gps.missionid=hd_mission.id AND hd_mission.missionname='中国第1次南极科学考察';
+					bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService1)); 
+					bindTimeArr();
+				}
+			}
+
+
+			private function sliderChangeTwo(event:SliderEvent):void    //返回slider两个thumb的value
+			{	
+				start_Date=TimeArr.getItemAt(event.target.values[0]).toString() ;
+				end_Date=TimeArr.getItemAt(event.target.values[1]).toString() ;
+				thumbTwoA.text=start_Date;
+				thumbTwoB.text=end_Date;
+				
+			} 
+			
+
+			private function sliderChangeTwo2(event:SliderEvent):void    //返回slider两个thumb的value
+			{	
+				
+				hjpoint1=HJArr.getItemAt(event.target.values[0]).toString() ;
+				hjpoint2=HJArr.getItemAt(event.target.values[1]).toString() ;
+				
+			} 
+
+
+			private function slider_rollOver(evt:MouseEvent):void    //只有当鼠标移动时才显示游标
+			{
+				Slider(evt.currentTarget).tickInterval = TICK_INTERVAL;
+			}
+			
+			private function slider_rollOut(evt:MouseEvent):void     //只有当鼠标移动时才显示游标
+			{
+				Slider(evt.currentTarget).tickInterval = 0;
+			}		
+
+
+			private function myToolTipFunc(val:String):String
+			{	
+				return	'Current value:	'+val; 
+			} 
+
+
+        private function dateFormat(dateItem:Object, dateColumn:DataGridColumn):String  //格式化日期
+        {
+            return publishDate.format(dateItem[dateColumn.dataField]);
+        }
+
+
+			private function lfRowNum(item:Object,iCol:int):String    //获取NO
+			{   
+				var index:int = mydata.dataProvider.getItemIndex(item) + 1; 
+				
+				return String(index);     
+			} 
+
+        /* private function lfRowNum(oItem:Object,iCol:int):String
+         {
+         var iIndex:int = mydata.dataProvider.getItemIndex(oItem) + 1;
+
+         return String(iIndex);
+         }  */
+        ]]>
+	</fx:Script>
+
+    <!--this.bdwc.getInfobyId.lastResult-->
+
+
+    <s:Label id="lab1" y="28" fontFamily="Times New Roman" fontSize="14" fontWeight="bold"
+             horizontalCenter="-209" text="选择航迹显示："/>
+    <s:Label id="lab2" y="172" fontFamily="Times New Roman" fontSize="14" fontWeight="bold"
+             horizontalCenter="-196" text="开始时间："/>
+    <s:Label id="lab3" y="172" fontFamily="Times New Roman" fontSize="14" fontWeight="bold"
+             horizontalCenter="50" text="结束时间："/>
+
+
+    <mx:ComboBox id="hj_cb" x="164" y="24" width="235" change="hj_cbHandler(event)" dataProvider="{NameArr}"
+                 fontWeight="bold" labelField="label" prompt="---------请选择南北极考察路线--------------">
+    </mx:ComboBox>
+    <!--<mx:ComboBox id="hj_cb" x="164" y="24" change="hj_cbHandler(event)" dataProvider="{hangji}"  width="200"
+                 fontWeight="bold" labelField="label" selectedIndex="0" editable="false" prompt="请选择南北极考察路线">
+    </mx:ComboBox>-->
+    <!--<s:ComboBox id="hj_cb" x="164" y="24" change="hj_cbHandler(event)" dataProvider="{hangji}"
+                fontWeight="bold" labelField="label" selectedIndex="0">
+    </s:ComboBox>-->
+    <!--<mx:CheckBox id="checkBox"
+                 selected="true"
+                 change="checkBox_change(event);" />
+    -->
+
+    <!--<mx:HSlider id="slider" x="48" y="95" allowThumbOverlap="true" liveDragging="true"
+                 percentWidth="80" showDataTip="true"  dataTipPrecision="0"
+                showTrackHighlight="true" thumbCount="2" maximum="198705" minimum="198411"
+                change="dispatchPriceFilter()"	/>-->
+    <!--	<mx:TextInput  id="test" x="53" y="105"	text="{start_Date}"/>-->
+    <mx:HSlider id="slider" x="36" y="114" width="480" allowThumbOverlap="false"
+                allowTrackClick="true" change="sliderChangeTwo(event)" dataTipPrecision="0"
+                liveDragging="true" percentWidth="92" rollOut="slider_rollOut(event);"
+                rollOver="slider_rollOver(event);" showDataTip="false" showTrackHighlight="true"
+                thumbCount="2"/>
+    <mx:HSlider id="slider2" x="36" y="114" width="480" allowThumbOverlap="false"
+                allowTrackClick="true" change="sliderChangeTwo2(event)" dataTipPrecision="0"
+                dataTipFormatFunction="myToolTipFunc"
+                liveDragging="true" percentWidth="92" rollOut="slider_rollOut(event);"
+                rollOver="slider_rollOver(event);" showDataTip="false" showTrackHighlight="true"
+                thumbCount="2"/>
+    <mx:TextInput id="thumbTwoA" x="130" y="168" width="123" editable="false"/>
+    <mx:TextInput id="thumbTwoB" x="376" y="168" width="131" editable="false"/>
+
+
+    <mx:VBox id="track1" backgroundColor="#000000" width="0" height="2" bottom="7"/>
+    <s:Button x="53" y="218" height="21" label="查看航迹信息" click="click_Handler(event)"/>
+    <!--<s:Button id="clbutton" x="395" y="124" height="21" label="Clipboard"
+              click="exportToClipboard()"/>-->
+    <s:Button id="csbutton" x="382" y="219" height="21" label="CSV" click="exportToCSV()"/>
+    <s:Button id="ecbutton" x="460" y="219" height="21" label="Excel" click="exportToExcel()"/>
+
+    <!--<mx:HSlider id="slider"
+                dataTipPrecision="2"
+                showTrackHighlight="true"
+                snapInterval="0.25"
+                thumbCount="{slider_thumbCount}"
+                tickInterval="1" />-->
+    <s:HGroup>
+        <s:VGroup>
+        </s:VGroup>
+    </s:HGroup>
+    <mx:DataGrid id="mydata" x="69" y="287" width="450" height="172" textAlign="left"
+            >
+
+        <mx:columns>
+            <!--  <mx:DataGridColumn headerText="NO" labelFunction="lfRowNum" sortable="false" />-->
+            <mx:DataGridColumn width=".3" dataField="DATETIME" headerText="时间"/>
+            <mx:DataGridColumn width=".2" dataField="LATITUDE" headerText="经度"/>
+            <mx:DataGridColumn width=".2" dataField="LONGITUDE" headerText="纬度"/>
+            <mx:DataGridColumn width=".2" dataField="BEARING" headerText="方位"/>
+
+
+        </mx:columns>
+    </mx:DataGrid>
+    <s:Label id="lab0" y="73" fontFamily="Times New Roman" fontSize="14" fontWeight="bold"
+             horizontalCenter="-188" text="请选择一段航迹时间："/>
+    <s:Label id="lab5" y="225" fontFamily="Times New Roman" fontSize="14" fontWeight="bold"
+             horizontalCenter="0" text="请选择下载方式："/>
+    <!--<s:TextArea id="d1" x="144" y="188" width="266" height="194" fontSize="14"/>-->
+
+
+</s:TitleWindow>

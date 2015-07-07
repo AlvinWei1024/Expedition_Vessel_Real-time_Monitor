@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 initialize="initi()"
+		 width="300" height="185">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:WebService id="bdwc" useProxy="false">
+			
+			<s:operation name="getInfobyId"
+						 fault="faultmsg(event)"
+						 result="getInfobyId(event)"/>
+		</s:WebService>
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import flashx.textLayout.formats.Float;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.*;
+			
+			private var result_Info:Array = new Array;//返回结果数据
+			private var xmlOper:XMLOperator = new XMLOperator();
+			public var flag:int;
+			public var timer:Timer = new Timer(5000);
+            public var url:String;
+			public function initi():void
+			{
+                this.bdwc.wsdl = this.url;
+				init();
+				timer.addEventListener(TimerEvent.TIMER, timeHandler);
+				timer.start();
+			}
+			public function init():void {
+				//获取ENGINE表信息
+				//var strSqlWService3:String = "select * from (select t_log, RPM,FUELINDEX,MSBTOTLOAD,DG1BUSVOLT,DG1BUSFREQ from hd_engine order by t_log DESC) where rownum=1";
+				var strSqlWService3:String = "select * from (select T_LOG, RPM,FUEL_INDEX_A AS FUELINDEX, MSB0_TOT_LOD AS MSBTOTLOAD, DG1_BUS_VOLT AS DG1BUSVOLT, DG1_BUS_FREQ AS DG1BUSFREQ from CJ_TEMP_ENGINE order by T_LOG DESC) where rownum=1";
+				
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService3));
+			}
+			public function timeHandler(evt:TimerEvent):void {
+				init();
+				
+			}
+			
+			private function faultmsg(event:FaultEvent):void {
+				Alert.show(event.message.toString());
+			}
+			
+			protected function getInfobyId(event:ResultEvent):void {
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				if (result_Info.length > 0) 
+				{
+
+					if (result_Info[0].hasOwnProperty("RPM")) 
+					{
+						//						tx3.text="时间:"+result_Info[0].T_LOG+"\n"+"主机转速:"+result_Info[0].RPM+"\n"+"负荷:"+result_Info[0].FUELINDEX+"%"
+						//							+"\n"+"电网功率:"+result_Info[0].MSBTOTLOAD+"KW"+"\n"+"电网电压:"+result_Info[0].DG1BUSVOLT+"V"+"\n"+"电网频率:"+result_Info[0].DG1BUSFREQ+"HZ"
+						//		
+						
+						var FUELINDEXstring:String = result_Info[0].FUELINDEX as String;
+						if(FUELINDEXstring=="-999"||FUELINDEXstring=="-9999") FUELINDEXstring="0";
+						var FUELINDEXstringarray:Array = FUELINDEXstring.split('.');
+						
+						var fomartNum:stand_num=new stand_num();
+						var FUELINDEX_s:String=fomartNum.fomart_num(FUELINDEXstringarray[0],2);
+						var FUELINDEXfinal_s:String=fomartNum.fomart_num(FUELINDEXstringarray[1],2);
+						
+						var getimg:getNumImg=new getNumImg();
+						getimg.removeElements(group_img);
+						getimg.get_NumImg(FUELINDEX_s,group_img,22);
+						var img_p:Image=new Image();
+						img_p.source= "images/point.png";
+						img_p.width=22;
+						group_img.addElement(img_p);
+						getimg.get_NumImg(FUELINDEXfinal_s,group_img,22);
+						var img_pe:Image=new Image();
+						img_pe.source= "images/percent.png";
+						img_pe.width=22;
+						group_img.addElement(img_pe);
+						
+				//		lb9.text = result_Info[0].FUELINDEX + " %";
+						var RPMstring:String = result_Info[0].RPM as String;
+						if(RPMstring=="-999"||RPMstring=="-9999") RPMstring="0";
+						lb10.text = RPMstring+"  转/分";
+						var MSBTOTLOADstring:String = result_Info[0].MSBTOTLOAD as String;
+						if(MSBTOTLOADstring=="-999"||MSBTOTLOADstring=="-9999") MSBTOTLOADstring="0";
+						lb11.text = MSBTOTLOADstring + " KW";
+						var DG1BUSVOLTstring:String = result_Info[0].DG1BUSVOLT as String;
+						if(DG1BUSVOLTstring=="-999"||DG1BUSVOLTstring=="-9999") DG1BUSVOLTstring="0";
+						lb12.text = DG1BUSVOLTstring + " V";
+						var DG1BUSFREQstring:String = result_Info[0].DG1BUSFREQ as String;
+						if(DG1BUSFREQstring=="-999"||DG1BUSFREQstring=="-9999") DG1BUSFREQstring="0";
+						lb13.text = DG1BUSFREQstring + " HZ";
+						
+					}
+
+				}
+				else if(result_Info.length == 0)
+				{
+					var FUELINDEXstring:String = "0";
+					if(FUELINDEXstring=="-999"||FUELINDEXstring=="-9999") FUELINDEXstring="0";
+					var FUELINDEXstringarray:Array = FUELINDEXstring.split('.');
+					
+					var fomartNum:stand_num=new stand_num();
+					var FUELINDEX_s:String=fomartNum.fomart_num(FUELINDEXstringarray[0],2);
+					var FUELINDEXfinal_s:String=fomartNum.fomart_num(FUELINDEXstringarray[1],2);
+					
+					var getimg:getNumImg=new getNumImg();
+					getimg.removeElements(group_img);
+					getimg.get_NumImg(FUELINDEX_s,group_img,22);
+					var img_p:Image=new Image();
+					img_p.source= "images/point.png";
+					img_p.width=22;
+					group_img.addElement(img_p);
+					getimg.get_NumImg(FUELINDEXfinal_s,group_img,22);
+					var img_pe:Image=new Image();
+					img_pe.source= "images/percent.png";
+					img_pe.width=22;
+					group_img.addElement(img_pe);
+					
+					//		lb9.text = result_Info[0].FUELINDEX + " %";
+					var RPMstring:String = "0";
+					
+					lb10.text = RPMstring+"  转/分";
+					var MSBTOTLOADstring:String = "0";
+					
+					lb11.text = MSBTOTLOADstring + " KW";
+					var DG1BUSVOLTstring:String = "0";
+					
+					lb12.text = DG1BUSVOLTstring + " V";
+					var DG1BUSFREQstring:String = "0";
+					
+					lb13.text = DG1BUSFREQstring + " HZ";
+				}
+				
+			}
+			
+			
+		]]>
+	</fx:Script>
+	
+	<s:VGroup paddingTop="5">
+		<s:HGroup>
+			<s:Image source="images/Icons/IconShipWheel.png" width="40" height="40" horizontalCenter="true"></s:Image>
+			<s:Label width="90" text="发动机信息" fontSize="15" paddingTop="15"/>
+		</s:HGroup>
+		<s:Label paddingLeft="25" paddingTop="10" text="负荷： " fontSize="12" />
+		<s:Group>
+			<s:Rect height="50" width="200" x="70" y="-35">
+				<s:fill>
+					<s:BitmapFill source="@Embed('images/numBack.png')"/>
+				</s:fill>
+			</s:Rect>
+			<s:HGroup paddingLeft="90" paddingTop="-45" id="group_img" >
+			</s:HGroup>
+		</s:Group>
+		
+		<s:HGroup paddingLeft="25">
+			<s:Label text="主机转速： " fontSize="12" paddingTop="0"/>
+			<s:Label width="300" id="lb10" fontFamily="myFont" paddingTop="-2"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="25">
+			<s:Label text="电网功率： " fontSize="12" paddingTop="0"/>
+			<s:Label width="300" id="lb11" fontFamily="myFont" paddingTop="-2"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="25">
+			<s:Label text="电网电压： " fontSize="12" paddingTop="0"/>
+			<s:Label width="300" id="lb12" fontFamily="myFont" paddingTop="-2"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="25">
+			<s:Label text="电网频率： " fontSize="12" paddingTop="0"/>
+			<s:Label width="300" id="lb13" fontFamily="myFont" paddingTop="-2"/>
+		</s:HGroup>
+	</s:VGroup>
+</s:Group>

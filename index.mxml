@@ -1,0 +1,1733 @@
+<?xml version="1.0"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   pageTitle="雪龙监控" initialize="m_init()" 
+			   creationComplete="createCompleted()" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:esri="http://www.esri.com/2008/ags"
+			   
+			   currentState="drawingSelectionState"
+			   
+			   >
+	
+	
+	
+	
+	<s:states>
+		<s:State name="drawingSelectionState"/>
+		<s:State name="drawingLineState"/>
+		<s:State name="drawingAreaState"/>
+		<s:State name="geometryProcessingState"/>
+	</s:states>
+	
+	
+	
+	
+	
+	
+	
+	
+	<s:layout>
+		
+		<s:BasicLayout/>
+		
+	</s:layout>
+	<fx:Declarations>
+		
+		<s:Rotate id="changeAngletoleft" angleFrom="{0}" angleTo="{180}" target="{Panel_playButton}" />
+		<s:Rotate id="changeAngletoright" angleFrom="{180}" angleTo="{0}" target="{Panel_playButton}" />
+		<s:Animate id="Move_Panel_Hide">
+			<s:SimpleMotionPath valueFrom="0" valueTo="-600" property="right"></s:SimpleMotionPath>
+		</s:Animate>
+		<s:Animate id="Move_Panel_Show">
+			<s:SimpleMotionPath valueFrom="-600" valueTo="0" property="right"></s:SimpleMotionPath>
+		</s:Animate>
+		<s:Animate id="Move_Panel_BtnHide">
+			<s:SimpleMotionPath valueFrom="900" valueTo="300" property="right"></s:SimpleMotionPath>
+		</s:Animate>
+		<s:Animate id="Move_Panel_BtnShow">
+			<s:SimpleMotionPath valueFrom="300" valueTo="900" property="right"></s:SimpleMotionPath>
+		</s:Animate>
+		
+		
+		
+		
+		
+		<!--<s:Animate id="moveEffectB">-->
+		<!--<s:SimpleMotionPath valueTo="0" property="top"></s:SimpleMotionPath>-->
+		
+		<!--</s:Animate>-->
+		<!--<s:Animate id="moveEffectShowB">-->
+		<!--<s:SimpleMotionPath valueTo="110" property="top"></s:SimpleMotionPath>-->
+		
+		<!--</s:Animate>-->
+		
+		<s:Animate id="moveEffect1">
+			<s:SimpleMotionPath valueTo="-330" property="left"></s:SimpleMotionPath>
+			
+		</s:Animate>
+		<s:Animate id="moveEffectShow1">
+			<s:SimpleMotionPath valueTo="0" property="left"></s:SimpleMotionPath>
+			
+		</s:Animate>
+		<s:Animate id="moveEffect2">
+			<s:SimpleMotionPath valueTo="0" property="left"></s:SimpleMotionPath>
+			
+		</s:Animate>
+		<s:Animate id="moveEffectShow2">
+			<s:SimpleMotionPath valueTo="330" property="left"></s:SimpleMotionPath>
+			
+		</s:Animate>
+		<s:Rotate id="r1Rotate" target="{this.showLegendButton}" angleFrom="0" angleTo="180" duration="0.1">
+			
+		</s:Rotate>
+		<s:Rotate id="r2Rotate" target="{this.showLegendButton}" angleFrom="180" angleTo="0" duration="0.1">
+			
+		</s:Rotate>
+		
+		<s:HTTPService id="configService" url="PathConfig.xml"></s:HTTPService>
+		<s:WebService id="bdwc" wsdl="http://192.168.10.62:82/Service_fbc.asmx?wsdl" useProxy="false">
+			<!--<s:WebService id="bdwc" wsdl="http://222.66.161.188:80/Service_fbc.asmx?wsdl" useProxy="false">-->
+			<!--<s:WebService id="bdwc" wsdl="http://192.168.11.17/Service_fbc.asmx?wsdl" useProxy="false">-->
+			<!--   http://spatial.polar.gov.cn/Service_fbc.asmx?wsdl-->
+			
+			<s:operation name="getInfobyId"
+						 fault = "faultmsg(event)"
+						 result="getInfobyId(event)"/>
+			<s:operation name="retuenXML"
+						 fault = "faultmsg(event)"
+						 result="retuenXMLResult(event)"/>
+			
+		</s:WebService>
+		
+		<s:WebService id="bdwc2" wsdl="http://192.168.10.62:82/Service_fbc.asmx?wsdl" useProxy="false">
+			<s:operation name="getInfobyId"
+						 fault = "faultmsg(event)"
+						 result="getInfobyId2(event)"/>
+			<s:operation name="retuenXML"
+						 fault = "faultmsg(event)"
+						 result="retuenXMLResult2(event)"/>
+		</s:WebService>
+		
+		<s:WebService id="bdwc3" wsdl="http://192.168.10.62:82/Service_fbc.asmx?wsdl" useProxy="false">
+			<s:operation name="getInfobyId"
+						 fault = "faultmsg(event)"
+						 result="getInfobyId3(event)"/>
+		</s:WebService>
+		
+	</fx:Declarations>
+	<fx:Style>
+		global{
+			
+			fontFamily:MicrosoftYaHei,微软雅黑,黑体;
+		}
+		
+	</fx:Style>
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.SpatialReference;
+			import com.esri.ags.clusterers.ESRIClusterer;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polygon;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.geometry.WebMercatorMapPoint;
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.TiledMapServiceLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.ags.symbols.SimpleLineSymbol;
+			import com.esri.ags.symbols.SimpleMarkerSymbol;
+			
+			import flash.sampler.DeleteObjectSample;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.Graphics_Info;
+			import shou.Legend_Info;
+			import shou.XMLOperator;
+			
+			import spark.primitives.BitmapImage;
+			
+			private var xmlOper:XMLOperator = new XMLOperator();
+			private var result_Info:Array = new Array;
+			
+			[Bindable]
+			public var comboText:ArrayCollection = new ArrayCollection();
+			
+			private var gpsRowCount:int = 0;
+			private var missionId:int = 0;
+			public var myGraphicsLayer:GraphicsLayer = new GraphicsLayer();
+			//        public var myGraphicsLayerBlue:GraphicsLayer = new GraphicsLayer();
+			//        public var myGraphicsLayerYellow:GraphicsLayer = new GraphicsLayer();
+			
+			public var GLayers:Array = new Array();
+			public var GInfo:Array = new Array();
+			
+			private var hjInfo_Popup:hangjiPopup;
+			public var numberOfCirclePoints:int=100;
+			private var m_circleGeometry:Polygon;
+			private var m_center:MapPoint;
+			private var m_radius:Number;
+			private var m_graphic:Graphic;
+			
+			public var jidiPanel1:JiDi_A;               //---------------------------------------------------- 韦躐晟   修改痕迹
+			public var jidiPanel_right:int=-600;    //调节右侧panel的right属性
+			public var panel_flag:Boolean=true;  //右侧Panel伸缩标识
+			public var angle:Number = 0;
+			
+			private var legend:Legend;
+			
+			private var imgURLs:Object = new Object();
+			
+			private var currentIndex:int = 0;
+			
+			private var isInit:Boolean = false;
+			
+			
+			private var isShowTitle1:Boolean = false;
+			private var leg:Array = new Array();
+			private var cPointLayer:GraphicsLayer;
+			//private var	coordLabel_Flag:Boolean = false;
+			
+			//private var timerC:Timer = new Timer(300000);
+			private var timerC:Timer = new Timer(30000);
+			//private var timerC:Timer = new Timer(1000);
+			var currentPointC:MapPoint = new MapPoint(0,0);
+			
+			
+			private function layerShowHandler(event:FlexEvent):void {
+				// update the LODs/zoomslider to use/show the levels for the selected base map
+				var tiledLayer:TiledMapServiceLayer = event.target as TiledMapServiceLayer;
+				myMap.lods = tiledLayer.tileInfo.lods;
+				
+			}
+			
+			private function m_init():void
+			{
+				configService.send();
+				
+			}
+			
+			
+			//        private function returnClearLayer(g:GraphicsLayer):void
+			//        {
+			//
+			//            for (var i = 0; i < GLayers.length; i++)
+			//            {
+			//                var mg:GraphicsLayer = GLayers[i] as GraphicsLayer;
+			//                if (mg.graphics.length == 0)
+			//                {
+			//                    GLayers[i] = g;
+			//                    break;
+			//                }
+			//            }
+			//        }
+			
+			public function fullScr():void   //---------------------------------------------------- 韦躐晟
+			{
+				stage.addEventListener(FullScreenEvent.FULL_SCREEN, update_Panel);
+				stage.displayState=StageDisplayState.FULL_SCREEN;
+				
+			}
+			
+			private function update_Panel(evn:FullScreenEvent):void    //---------------------------------------------------- 韦躐晟
+			{
+				
+				if(evn.fullScreen)
+				{
+					
+					//jidiPanel1.creationCompleteHandler();
+					this.removeElement(jidiPanel1);
+					jidiPanel1 = new JiDi_A();
+					jidiPanel1.url = configService.lastResult["wsPath"];
+					jidiPanel1.right=jidiPanel_right;
+					//jidiPanel_right=jidiPanel1.right as int;
+					jidiPanel1.top=0;
+					this.addElement(jidiPanel1);
+					this.Move_Panel_Hide.target = this.jidiPanel1;
+					this.Move_Panel_BtnHide.target=this.Panel_playButton;
+					this.Move_Panel_Show.target = this.jidiPanel1;
+					this.Move_Panel_BtnShow.target=this.Panel_playButton;
+				}
+				else
+				{
+					//jidiPanel1.creationCompleteHandler();
+					
+					this.removeElement(jidiPanel1);
+					jidiPanel1 = new JiDi_A();
+					jidiPanel1.url = configService.lastResult["wsPath"];
+					jidiPanel1.right=jidiPanel_right;
+					//jidiPanel_right=jidiPanel1.right as int;
+					jidiPanel1.top=0;
+					this.addElement(jidiPanel1);
+					this.Move_Panel_Hide.target = this.jidiPanel1;
+					this.Move_Panel_BtnHide.target=this.Panel_playButton;
+					this.Move_Panel_Show.target = this.jidiPanel1;
+					this.Move_Panel_BtnShow.target=this.Panel_playButton;
+				}
+				
+			}
+			
+			private function init():void {
+				// var tempstring:String =                             configService.lastResult["wsPath"];
+				//  this.bdwc.wsdl = configService.lastResult["wsPath"];
+				// this.bdwc2.wsdl = configService.lastResult["wsPath"];
+				cPointLayer = new GraphicsLayer();
+				
+				this.timeHandlerC(null);
+				timerC.addEventListener(TimerEvent.TIMER,this.timeHandlerC);
+				timerC.start();
+				jidiPanel1 = new JiDi_A();                     //---------------------------------------------------- 韦躐晟
+				jidiPanel1.url = configService.lastResult["wsPath"];
+				jidiPanel1.right=jidiPanel_right;
+				jidiPanel_right=jidiPanel1.right as int;
+				jidiPanel1.top=0;
+				this.addElement(jidiPanel1);
+				this.Move_Panel_Hide.target = this.jidiPanel1;
+				this.Move_Panel_BtnHide.target=this.Panel_playButton;
+				this.Move_Panel_Show.target = this.jidiPanel1;
+				this.Move_Panel_BtnShow.target=this.Panel_playButton;
+				
+				//this.testImage.source="@Embed(source='images/sll.jpg')";
+				// this.testImage.source="images/sll.jpg";
+
+				
+				
+				isInit = true;
+				imgURLs["orange"] = "images/line1.png";
+				imgURLs["blue"] = "images/line2.png";
+				imgURLs["yellow"] = "images/line3.png";
+				imgURLs["grey"] = "images/line4.png";
+				GLayers.push(new GraphicsLayer());
+				GLayers.push(new GraphicsLayer());
+				GLayers.push(new GraphicsLayer());
+				
+				for (var i = 0; i < GLayers.length; i++)
+				{
+					this.myMap.addLayer(GLayers[i] as GraphicsLayer);
+				}
+				
+				
+				
+				for (var i = 1; i <= GLayers.length; i++)
+				{
+					var tginfo:Graphics_Info = new Graphics_Info();
+					tginfo.arrowImgUrl = "images/arrow" + i + ".png";
+					tginfo.glayer = GLayers[i-1];
+					var li:Legend_Info = new Legend_Info();
+					if (i == 1) //layer数组中，第一个layer是橙色线条
+					{
+						tginfo.lineColor = 0xff8421;
+						li.PicURL = imgURLs["orange"];
+						li.PicURL2 = imgURLs["grey"];
+						li.index = 0;
+					}
+					else if (i == 2) //layer数组中，第二个layer是蓝色线条
+					{
+						tginfo.lineColor = 0x66f2e0;
+						li.PicURL = imgURLs["blue"];
+						li.PicURL2 = imgURLs["grey"];
+						li.index = 1;
+					}
+						
+					else if (i == 3) //layer数组中，第三个layer是黄色线条
+					{
+						tginfo.lineColor = 0xfcf48e;
+						li.PicURL = imgURLs["yellow"];
+						li.PicURL2 = imgURLs["grey"];
+						li.index = 2;
+					}
+					tginfo.lInfo = li;
+					GInfo.push(tginfo);
+				}
+				//var jidiPanel:JiDi_A = new JiDi_A();
+				
+				//right="0" top="0" borderVisible="false" alpha="0.8"
+				//            jidiPanel.right=-600;
+				//            jidiPanel.top=0;
+				//            //jidiPanel.alpha=0.8;
+				//
+				//            this.addElement(jidiPanel);
+				var strSql:String = "select * from (select ROWNUM rn，T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS order by T_LOG desc) where ROWNUM<=5000) where mod(rn,5000)=0";
+				//            var strSqlPlane:String="select * from HD_PLANROUTE where LATTUDE IS NOT NULL and LONGITUDE IS NOT NULL order by time desc"
+				//            bdwc2.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlPlane));
+				//bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSql));
+				
+				//            var temp1:Graphics_Info = GInfo[currentIndex] as Graphics_Info;
+				//            this.myGraphicsLayer =  temp1.glayer;
+				var missionSql:String = "select ID,MISSIONNAME from HD_MISSION order by \"StartTime\" desc";
+				
+				var sqlstring:String = XMLOperator.GetSelectWebServiceSql(missionSql);
+				bdwc.retuenXML(XMLOperator.GetSelectWebServiceSql(missionSql));
+				
+				
+				legend = new Legend();
+				legend.x = 0;
+				legend.y = this.height - 500;
+				//PopUpManager.addPopUp(legend, this,false);
+				this.addElement(legend);
+				
+				this.moveEffect1.target = legend;
+				this.moveEffectShow1.target = legend;
+				this.moveEffect2.target = this.showLegendButton;
+				this.moveEffectShow2.target = this.showLegendButton;
+				
+				var strCurrent:String = "select * from(select T_LOG, latitude,longitude from CJ_TEMP_GPS order by T_LOG DESC) where ROWNUM=1";
+				//select * from (select T_LOG, LATITUDE, LONGITUDE from CJ_TEMP_GPS order by T_LOG DESC) where rownum=1
+				
+				this.bdwc3.getInfobyId(XMLOperator.GetSelectWebServiceSql(strCurrent));
+				
+				
+				
+			}
+			
+			public function timeHandlerC(evt:TimerEvent):void
+			{
+				//var strCurrent:String = "select latitude,longitude from CJ_TEMP_GPS where ROWNUM=1";
+				var strCurrent:String="select * from(select T_LOG, latitude,longitude from CJ_TEMP_GPS order by T_LOG DESC) where ROWNUM=1";
+				this.bdwc3.getInfobyId(XMLOperator.GetSelectWebServiceSql(strCurrent));
+			}
+			
+			private function createCompleted():void {
+				
+				//Alert.show(configService.lastResult["wsPath"]);
+				MouseCoordinate_Butt_clickHandler();
+				cur_Location_img.﻿addEventListener(MouseEvent.MOUSE_DOWN,onMouseDowns);
+				cur_Location_img.﻿addEventListener(MouseEvent.MOUSE_UP ,onMouseUps);
+				//this.myMap.addLayer(cPointLayer);
+				// this.myMap.centerAt(this.currentPointC);
+				
+			}
+			﻿ private function onMouseDowns(evt:MouseEvent):void 
+			{                
+				
+				
+				cur_Location_img.height=65;
+			}
+			private function onMouseUps(evt:MouseEvent):void
+				
+			{  
+				cur_Location_img.height=40;
+			} 
+			
+			private function faultmsg(event:FaultEvent):void {
+				Alert.show(event.message.toString());
+			}
+			
+			protected function retuenXMLResult(event:ResultEvent):void  //取出同一mission下的行数
+			{
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				for each (var temp:Object in result_Info)
+				{
+					var tempO:Object = new Object();
+					tempO["label"] = temp["MISSIONNAME"];
+					tempO["data"] = temp["ID"];
+					this.comboText.addItem(tempO);
+				}
+				missionBox.dataProvider = comboText;
+				missionBox.textInput.editable=false;
+				missionBox.selectedIndex = 0;
+				getRoutePoints(comboText[0].data);//将当前选中的missionId的点集在地图上画出
+			}
+			
+			protected function retuenXMLResult2(event:ResultEvent):void //根据行数将点定规到50个
+			{
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				gpsRowCount = Number(result_Info[0].ROWCOUNT);
+				var sqlstr1:String;
+				//若是gpsRowCount比50小
+				
+				/*	if(missionId==36)
+				{
+				//sqlstr1 = "select * from (select ROWNUM rn,T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by id ASC))";
+				if ( gpsRowCount < 200 && gpsRowCount != 0)
+				// sqlstr1 = "select * from (select ROWNUM rn，T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by T_LOG desc))";
+				sqlstr1 = "select * from (select ROWNUM rn,T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by id ASC))";
+				
+				else if (gpsRowCount == 0)
+				{
+				Alert.show(this.missionBox.selectedItem.label+"航线无关键点！");
+				return;
+				}
+				else
+				//sqlstr1 = "select * from (select ROWNUM rn，T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by T_LOG desc)) where mod(rn,round(" + gpsRowCount + "/50,0))=0";
+				sqlstr1 = "select * from (select ROWNUM rn,id,T_LOG,latitude,longitude,speed,bearing from (select id,T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by id ASC)) where rn=1 or mod(rn,round(" + gpsRowCount + "/20,0))=0 or rn= (select count(*) from hd_gps WHERE MISSIONID="+missionId+")ORDER BY ID asc";
+				
+				}
+				
+				
+				else
+				{*/
+				if ( gpsRowCount < 50 && gpsRowCount != 0)
+					// sqlstr1 = "select * from (select ROWNUM rn，T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by T_LOG desc))";
+					sqlstr1 = "select * from (select ROWNUM rn,T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by T_LOG ASC))";
+					
+				else if (gpsRowCount == 0)
+				{
+					Alert.show(this.missionBox.selectedItem.label+"航线无关键点！");
+					return;
+				}
+				else
+					//sqlstr1 = "select * from (select ROWNUM rn，T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by T_LOG desc)) where mod(rn,round(" + gpsRowCount + "/50,0))=0";
+					sqlstr1 = "select * from (select ROWNUM rn,T_LOG,latitude,longitude,speed,bearing from (select T_LOG,latitude,longitude,speed,bearing from HD_GPS where MISSIONID=" + missionId + " order by T_LOG ASC)) where mod(rn,round(" + gpsRowCount + "/80,0))=0 or rn=1 or rn= (select count(*) from hd_gps WHERE MISSIONID="+missionId+") ORDER BY T_LOG asc";
+				
+				//}
+				
+				//            if (missionId == 29) //只有第29次有历史路径
+				//            {
+				//               // var strSqlPlane:String="select * from HD_PLANROUTE where LATTUDE IS NOT NULL and LONGITUDE IS NOT NULL order by time desc"
+				//				var strSqlPlane:String="select * from HD_PLANROUTE where LATTUDE IS NOT NULL and LONGITUDE IS NOT NULL order by time ASC"
+				//                bdwc2.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlPlane));
+				//            }
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(sqlstr1));
+				
+				var strSqlPlane:String="select * from HD_PLANROUTE where LATITUDE IS NOT NULL and LONGITUDE IS NOT NULL and MISSIONID="+missionId+" order by time desc"
+				bdwc2.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlPlane));
+			}
+			
+			
+			
+			protected function getInfobyId(event:ResultEvent):void {
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				trace(result_Info);
+				var shipPoints:FeatureSet = new FeatureSet();
+				shipPoints.features = new Array();
+				addSomeMarkers(result_Info);
+				
+				
+			}
+			
+			protected function getInfobyId2(event:ResultEvent):void {
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				
+				addPlaneRouteMarkers(result_Info);
+			}
+			
+			protected function getInfobyId3(event:ResultEvent):void {
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				currentPointC = convertWgs2Mercator(result_Info[0].LONGITUDE, result_Info[0].LATITUDE);
+				var ss:PictureMarkerSymbol = new PictureMarkerSymbol("images/TrackingDot.png");
+				var currentGraphic:Graphic = new Graphic(currentPointC,ss);
+				cPointLayer.clear();
+				cPointLayer.add(currentGraphic);
+				this.myMap.addLayer(cPointLayer);
+				//this.myMap.centerAt(this.currentPointC);  //自动屏幕锁定当前位置
+				
+				//this.myMap.extent = currentPointC.extent;
+				
+				
+				
+			}
+			
+			
+			public var planeRouteLayer:GraphicsLayer = new GraphicsLayer();
+			
+			private function addPlaneRouteMarkers(data:Array):void{
+				var pointArray:ArrayCollection = new ArrayCollection();
+				if (data.length == 0)
+				{
+					Alert.show(this.missionBox.selectedItem.label +"无计划航迹！");
+					return;
+				}
+				/* for each (var entry:Object in data) {
+				var tempPoint:MapPoint = convertWgs2Mercator(entry.LONGITUDE, entry.LATITUDE);
+				pointArray.addItem(tempPoint);
+				
+				} */
+				
+				
+				
+				var myPolyline:Polyline = new Polyline();
+				
+				var firstPoint:MapPoint = convertWgs2Mercator(data[0].LONGITUDE, data[0].LATITUDE);
+				pointArray.addItem(firstPoint); //先把第一个点加入
+				
+				for (var i:int = 1; i < data.length; i++) //从第二个点开始循环，判断当前点和前一个点的纬度大小，这里应该不用管i与i-1的正负
+				{
+					var tempPoint11:MapPoint = convertWgs2Mercator(data[i-1].LONGITUDE, data[i-1].LATITUDE);
+					var tempPoint22:MapPoint = convertWgs2Mercator(data[i].LONGITUDE, data[i].LATITUDE);
+					//要排除0°经线左右的点（因为0°经线左右的点符号也是相反）
+					if (Number(data[i-1].LONGITUDE) * Number(data[i].LONGITUDE) < 0 && Math.abs(Number(data[i-1].LONGITUDE)) > 100 && Math.abs(Number(data[i].LONGITUDE)) > 100)
+					{
+						var temp11:Number = (180 - Math.abs(data[i-1].LONGITUDE)) * (data[i].LATITUDE - data[i-1].LATITUDE);
+						var temp22:Number =  (360 - Math.abs(data[i-1].LONGITUDE) - Math.abs(data[i].LONGITUDE));
+						var tempY:Number = temp11 / temp22 + Number(data[i-1].LATITUDE);
+						var tempPoint1:MapPoint = convertWgs2Mercator(179.9999999999, tempY);
+						var tempPoint2:MapPoint = convertWgs2Mercator(-179.9999999999, tempY);
+						
+						if (tempPoint11.x > 0)
+						{
+							pointArray.addItem(tempPoint1);
+							pointArray.addItem(tempPoint2);
+							
+							//断开
+							var tempPath1:Array = new Array();
+							tempPath1.push(tempPoint11);
+							tempPath1.push(tempPoint1);
+							myPolyline.addPath(tempPath1);
+							
+							var tempPath2:Array = new Array();
+							tempPath2.push(tempPoint2);
+							tempPath2.push(tempPoint22);
+							myPolyline.addPath(tempPath2);
+						}
+						else
+						{
+							pointArray.addItem(tempPoint2);
+							pointArray.addItem(tempPoint1);
+							
+							var tempPath1:Array = new Array();
+							tempPath1.push(tempPoint11);
+							tempPath1.push(tempPoint2);
+							myPolyline.addPath(tempPath1);
+							
+							var tempPath2:Array = new Array();
+							tempPath2.push(tempPoint1);
+							tempPath2.push(tempPoint22);
+							myPolyline.addPath(tempPath2);
+						}
+						
+						pointArray.addItem(tempPoint22);
+						
+					}
+					else
+					{
+						
+						pointArray.addItem(tempPoint22);
+						var tempPathArray:Array = new Array();
+						tempPathArray.push(tempPoint11);
+						tempPathArray.push(tempPoint22);
+						myPolyline.addPath(tempPathArray);
+					}
+					
+				}
+				
+				//myPolyline.addPath(pointArray.toArray());
+				var myGraphicLine:Graphic = new Graphic(myPolyline);
+				myGraphicLine.symbol = new SimpleLineSymbol(SimpleLineSymbol.STYLE_DASH, 0x666666, 1.0, 4);
+				//(GLayers[currentIndex] as GraphicsLayer).add(myGraphicLine);
+				
+				//var planeRouteLayer:GraphicsLayer = new GraphicsLayer();
+				planeRouteLayer.add(myGraphicLine);
+				
+				
+				this.myMap.addLayer(planeRouteLayer);
+				
+			}
+			
+			
+			
+			private function addSomeMarkers(data:Array):void {
+				// This is just to show how to add markers
+				// using ActionScript code as opposed to MXML tags.
+				// Alert.show(data[0].LATITUDE+"  "+data[0].LONGITUDE);
+				
+				
+				var myGraphicLine:Graphic = new Graphic(myPolyline);
+				var gtemp1:Graphics_Info = GInfo[currentIndex] as Graphics_Info;
+				
+				
+				var pointArray:ArrayCollection = new ArrayCollection();
+				
+				var myPolyline:Polyline = new Polyline();
+				
+				var firstPoint:MapPoint = convertWgs2Mercator(data[0].LONGITUDE, data[0].LATITUDE);
+				pointArray.addItem(firstPoint); //先把第一个点加入
+				
+				for (var i:int = 1; i < data.length; i++) //从第二个点开始循环，判断当前点和前一个点的纬度大小，这里应该不用管i与i-1的正负
+				{
+					var tempPoint11:MapPoint = convertWgs2Mercator(data[i-1].LONGITUDE, data[i-1].LATITUDE);
+					var tempPoint22:MapPoint = convertWgs2Mercator(data[i].LONGITUDE, data[i].LATITUDE);
+					//要排除0°经线左右的点（因为0°经线左右的点符号也是相反）
+					if (Number(data[i-1].LONGITUDE) * Number(data[i].LONGITUDE) < 0 && Math.abs(Number(data[i-1].LONGITUDE)) > 100 && Math.abs(Number(data[i].LONGITUDE)) > 100)
+					{
+						var temp11:Number = (180 - Math.abs(data[i-1].LONGITUDE)) * (data[i].LATITUDE - data[i-1].LATITUDE);
+						var temp22:Number =  (360 - Math.abs(data[i-1].LONGITUDE) - Math.abs(data[i].LONGITUDE));
+						var tempY:Number = temp11 / temp22 + Number(data[i-1].LATITUDE);
+						var tempPoint1:MapPoint = convertWgs2Mercator(179.9999999999, tempY);
+						var tempPoint2:MapPoint = convertWgs2Mercator(-179.9999999999, tempY);
+						//var tempPoint1:MapPoint = convertWgs2Mercator(tempY, tempY);
+						//var tempPoint2:MapPoint = convertWgs2Mercator(tempY, tempY);
+						if (tempPoint11.x > 0)
+						{
+							pointArray.addItem(tempPoint1);
+							pointArray.addItem(tempPoint2);
+							
+							//断开
+							var tempPath1:Array = new Array();
+							tempPath1.push(tempPoint11);
+							tempPath1.push(tempPoint1);
+							myPolyline.addPath(tempPath1);
+							
+							var tempPath2:Array = new Array();
+							tempPath2.push(tempPoint2);
+							tempPath2.push(tempPoint22);
+							myPolyline.addPath(tempPath2);
+						}
+						else
+						{
+							pointArray.addItem(tempPoint2);
+							pointArray.addItem(tempPoint1);
+							
+							var tempPath1:Array = new Array();
+							tempPath1.push(tempPoint11);
+							tempPath1.push(tempPoint2);
+							myPolyline.addPath(tempPath1);
+							
+							var tempPath2:Array = new Array();
+							tempPath2.push(tempPoint1);
+							tempPath2.push(tempPoint22);
+							myPolyline.addPath(tempPath2);
+						}
+						
+						pointArray.addItem(tempPoint22);
+						
+					}
+					else
+					{
+						
+						pointArray.addItem(tempPoint22);
+						var tempPathArray:Array = new Array();
+						tempPathArray.push(tempPoint11);
+						tempPathArray.push(tempPoint22);
+						myPolyline.addPath(tempPathArray);
+					}
+					
+				}
+				
+				//          for each (var entry:Object in data)
+				//          {
+				//              var tempPoint:MapPoint = convertWgs2Mercator(entry.LONGITUDE, entry.LATITUDE);
+				//              pointArray.addItem(tempPoint);
+				//          }
+				//
+				//            myPolyline.addPath(pointArray.toArray());
+				//this.myMap.extent = myPolyline.extent;
+				this.myMap.centerAt(this.currentPointC);
+				var myGraphicLine:Graphic = new Graphic(myPolyline);
+				myGraphicLine.symbol = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, gtemp1.lineColor, 1.0, 4);
+				(GLayers[currentIndex] as GraphicsLayer).add(myGraphicLine);
+				
+				var s1:PictureMarkerSymbol=new PictureMarkerSymbol("images/point_icon.png");
+				var s2:PictureMarkerSymbol=new PictureMarkerSymbol("images/pin1.png");
+				var s3:PictureMarkerSymbol;
+				
+				
+				
+				for (var i = 1;i < pointArray.length-1; i++)
+				{
+					if ((pointArray[i] as MapPoint).x != 179.9999999999 || (pointArray[i] as MapPoint).x != -179.9999999999)
+					{
+						var mpIn:MapPoint = pointArray[i - 1] as MapPoint;
+						var mpOut:MapPoint = pointArray[i] as MapPoint;
+						var gradient:Number = Math.atan((mpOut.y - mpIn.y)/(mpOut.x - mpIn.x));
+						if (mpOut.x-mpIn.x>=0)
+						{
+							s3 = new PictureMarkerSymbol(gtemp1.arrowImgUrl,0,0,0,0,-(gradient/(Math.PI*2))*360);
+						}
+						else
+						{
+							s3 = new PictureMarkerSymbol(gtemp1.arrowImgUrl,0,0,0,0,-(gradient/(Math.PI*2))*360-180);
+							s3 = new PictureMarkerSymbol(gtemp1.arrowImgUrl,0,0,0,0,-(gradient/(Math.PI*2))*360-180);
+						}
+						
+						var arrowGraphic:Graphic;
+						arrowGraphic = new Graphic(mpOut, s3);
+						
+						arrowGraphic.toolTip = "历史纪录";
+						arrowGraphic.addEventListener(MouseEvent.CLICK,follow_hj);
+						(GLayers[currentIndex] as GraphicsLayer).add(arrowGraphic);
+					}
+					else
+					{
+						continue;
+					}
+					
+					
+				}
+				
+				//添加船当前位置的示意
+				m_circleGeometry=new Polygon();
+				var l:SimpleLineSymbol=new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID,0xDC143C,2.5,1);
+				var ls:SimpleFillSymbol=new SimpleFillSymbol("circle",0xDC143C,0.3,l);
+				if (pointArray.length >= 1)
+				{
+					m_center = pointArray[pointArray.length-1] as MapPoint;
+					// m_radius = 300000;                   //-----------------------------------------------------------------------wls注释
+					updateCirclePolygon();
+					m_graphic=new Graphic(m_circleGeometry,ls);
+					(GLayers[currentIndex] as GraphicsLayer).add(m_graphic);
+				}
+				else
+				{
+					
+				}
+				
+				// this.myMap.addLayer((GLayers[currentIndex] as GraphicsLayer));
+				
+				if (isInit == true) //全空的话说明是初始化时添加
+				{
+					
+					var temp:Graphics_Info = GInfo[currentIndex] as Graphics_Info;
+					temp.lInfo.PathName = this.missionBox.selectedItem.label;
+					temp.lInfo.index = currentIndex;
+					temp.lInfo.myGlayers = GLayers;
+					
+					legend.addLegendPath(temp.lInfo, this.planeRouteLayer);//在图例中增添信息
+					isInit = false;
+				}
+				
+				//GLayers[currentIndex] = myGraphicsLayer;
+				// this.myMap.centerAt(pointArray.getItemAt(pointArray.length-1) as MapPoint);
+				
+			}
+			
+			/* widget显示每个航迹点的监听触发事件*/
+			private function follow_hj(event:MouseEvent):void {
+				clearPopups();
+				infopop_hj(event);
+			}
+			
+			protected function clearPopups():void
+			{
+				hjInfo_Popup=null;
+			}
+			
+			/**
+			 * widget 显示每个航迹点的弹出窗口信息
+			 */
+			private function infopop_hj(event:MouseEvent):void{
+				hjInfo_Popup = new hangjiPopup();
+				this.myMap.infoWindow.label = "查看信息";
+				this.myMap.infoWindow.content = hjInfo_Popup;
+				this.myMap.infoWindow.isPopUp = true;
+				var tempGraphic:Graphic = event.currentTarget as Graphic;
+				var currentPoint:MapPoint = tempGraphic.geometry as MapPoint;
+				var mp:MapPoint = new MapPoint(currentPoint.x,currentPoint.y);
+				this.myMap.infoWindow.show(mp);
+			}
+			
+			
+			function convertWgs2Mercator(x:Number,y:Number):MapPoint
+			{
+				//var mercator:MapPoint;
+				x =  x *20037508.34/180;
+				y = Math.log(Math.tan((90+y)*Math.PI/360))/(Math.PI/180)*20037508.34/180;
+				
+				//Alert.show(x+"   "+y);
+				
+				return new MapPoint(x,y);
+				
+			}
+			
+			function Mercator2convertWgs(x:Number,y:Number):MapPoint
+			{
+				//var mercator:MapPoint;
+				x =  x/20037508.34*180;
+				y=y/20037508.34*180;
+				y= 180/Math.PI*(2*Math.atan(Math.exp(y*Math.PI/180))-Math.PI/2);
+				//Alert.show(x+"   "+y);				
+				return new MapPoint(x,y);
+				
+			}
+			
+			
+			
+			import com.esri.ags.layers.ArcGISTiledMapServiceLayer;                                           //马航失联飞机搜救图     temp
+			var MH370_Flag:Boolean=false;
+			var MH370:ArcGISDynamicMapServiceLayer= new ArcGISDynamicMapServiceLayer(
+				"http://202.121.66.51:6080/arcgis/rest/services/jd_Australia/MapServer");
+			function popupStatistics():void
+			{
+				
+				MH370.alpha=0.5;
+				if(MH370_Flag==false)
+				{
+					
+					this.myMap.addLayer(MH370);
+					MH370_Flag=true;
+				}
+				else if(MH370_Flag==true)
+				{
+					
+					this.myMap.removeLayer(MH370);
+					MH370_Flag=false;
+				}
+				
+				
+			}	
+			function popupChart():void
+			{
+				var chartWindow:ChartDisplay = new ChartDisplay();
+				chartWindow.url = configService.lastResult["wsPath"];
+				PopUpManager.addPopUp(chartWindow,this);
+				PopUpManager.centerPopUp(chartWindow);
+				
+			}
+			
+			
+			function popupExport():void
+			{
+				var exportWindow:exportdata = new exportdata();
+				exportWindow.url = configService.lastResult["wsPath"];
+				PopUpManager.addPopUp(exportWindow,this);
+				PopUpManager.centerPopUp(exportWindow);
+			}
+			function popupAboutUS():void
+			{
+				var aboutWindow:About = new About();
+				aboutWindow.url = configService.lastResult["wsPath"];
+				PopUpManager.addPopUp(aboutWindow,this);
+				PopUpManager.centerPopUp(aboutWindow);
+			}
+			
+			
+			function addPath():void
+			{
+				if (this.legend.Group2.numElements < 3)
+				{
+					for (var i = 0; i < GInfo.length; i++)
+					{
+						var tempG:Graphics_Info = GInfo[i] as Graphics_Info;
+						if (tempG.glayer.numGraphics == 0)
+						{
+							this.currentIndex = i;
+							break;
+						}
+						else
+						{
+							continue;
+						}
+						
+					}
+					var thisG:Graphics_Info = GInfo[currentIndex] as Graphics_Info;
+					thisG.lInfo.PathName = this.missionBox.selectedItem.label;
+					thisG.lInfo.index = currentIndex;
+					
+					getRoutePoints(this.missionBox.selectedItem.data); //把名字对应的点集加载到图层上，并把此图层加载到图层数组中
+					thisG.lInfo.myGlayers = this.GLayers;
+					legend.addLegendPath(thisG.lInfo, this.planeRouteLayer);//在图例中增添信息
+				}
+				else
+				{
+					Alert.show("航迹显示不能超过3条");
+				}
+				
+			}
+			
+			function  clearPaths():void
+			{
+				(GLayers[currentIndex] as GraphicsLayer).clear();
+			}
+			
+			function comboBoxChange(event:Event):void
+			{
+				// myGraphicsLayer.clear();
+				// getRoutePoints(event.target.selectedItem.data);
+			}
+			
+			private function getRoutePoints(missId:int)
+			{
+				var sqlstrCount:String = "select count(*) as rowcount from HD_GPS where MISSIONID=" + missId;
+				missionId = missId;
+				bdwc2.retuenXML(XMLOperator.GetSelectWebServiceSql(sqlstrCount));
+			}
+			
+			/**
+			 * widget 获取圆的随机数组
+			 * @author:wang
+			 * @param:void
+			 * @return:void
+			 */
+			private function updateCirclePolygon():void{
+				
+				if((m_circleGeometry.rings!=null)&&(m_circleGeometry.rings.length>0)){
+					
+					m_circleGeometry.removeRing(0);
+				}
+				
+				var cosinus:Number;
+				var sinus:Number;
+				var x:Number;
+				var y:Number;
+				var arrayOfPoints:Array=new Array();
+				for (var i:int=0; i < numberOfCirclePoints; i++)
+				{
+					sinus=Math.sin((Math.PI * 2.0) * (i / numberOfCirclePoints));
+					cosinus=Math.cos((Math.PI * 2.0) * (i / numberOfCirclePoints));
+					x=m_center.x + m_radius * cosinus;
+					y=m_center.y + m_radius * sinus;
+					arrayOfPoints[i]=new MapPoint(x, y);
+					//arrayOfPoints[i]  = WebMercatorUtil.geographicToWebMercator(arrayOfPoints[i]) as MapPoint;
+				}
+				arrayOfPoints.push(arrayOfPoints[0]);
+				
+				m_circleGeometry.addRing(arrayOfPoints);
+			}
+			
+//			private function barMoveHandler(event:Event):void {
+//				
+//				if (this.isShowTitle == false)
+//				{
+//					moveEffect.play();
+//					// moveEffectB.play();
+//					this.r3Rotate.play();
+//					this.isShowTitle = true;
+//					
+//				}
+//				else
+//				{
+//					moveEffectShow.play();
+//					// moveEffectShowB.play();
+//					this.r4Rotate.play();
+//					this.isShowTitle = false;
+//				}
+//			}
+			
+			
+			private function  onClickShow():void
+			{
+				if (this.isShowTitle1 == false)
+				{
+					moveEffect1.play();
+					moveEffect2.play();
+					this.r1Rotate.play();
+					this.isShowTitle1 = true;
+					
+				}
+				else
+				{
+					moveEffectShow1.play();
+					moveEffectShow2.play();
+					this.r2Rotate.play();
+					this.isShowTitle1 = false;
+				}
+			}
+			
+			
+			
+			private function Panel_playButton_click():void        //     wwwwwwlllllllssssss   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<wlsh
+			{
+				
+				if (panel_flag == false)
+				{
+					
+					Move_Panel_Hide.play();
+					Move_Panel_BtnHide.play();   //按钮跟随移动
+					jidiPanel_right=-600;       //当全屏后，重新加载时获得右边Panel的right
+					panel_flag = true;
+					changeAngletoright.play();   //箭头方向向右旋转
+				}
+				else
+				{
+					Move_Panel_Show.play();
+					Move_Panel_BtnShow.play();
+					jidiPanel_right=0;    //当全屏后，重新加载时获得右边Panel的right
+					panel_flag = false;
+					changeAngletoleft.play();  //箭头方向向左旋转
+				}
+			}
+			
+			
+			
+			
+			
+			
+			protected function Panel_playButton_mouseMoveHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				Panel_playButton.alpha=1;
+			}
+			
+			protected function Panel_playButton_mouseOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				//Panel_playButton.alpha=1;
+				Panel_playButton.alpha=0.7;
+				
+			}
+			
+			protected function currentPosition():void
+			{
+				this.myMap.centerAt(this.currentPointC);
+			}
+			
+			
+			protected function MouseCoordinate_Butt_clickHandler():void
+			{
+				//MouseCoordinate_Butt.setStyle("chromeColor", "#7a7a7a");
+				//	coordLabel.visible=true;
+				//	coordLabel.setStyle('color','gray');
+				myMap.addEventListener(MouseEvent.MOUSE_MOVE, mouseMoveHandler);																					
+			}
+			
+			private function mouseMoveHandler(event:MouseEvent):void
+			{
+				
+				const mapPoint_temp:MapPoint = myMap.toMapFromStage(event.stageX, event.stageY);//获取当前鼠标的坐标转换成点。
+				var mapPoint:MapPoint = Mercator2convertWgs(mapPoint_temp.x, mapPoint_temp.y);
+				logANDlat.text = "经度: " + mapPoint.x.toFixed(6)  //点的Y值坐标（保留六位小数）					
+					+ "  纬度: " + mapPoint.y.toFixed(6);
+				/*	coordLabel.text = "经度: " + mapPoint.x.toFixed(6)  //点的Y值坐标（保留六位小数）					
+				+ "\n纬度: " + mapPoint.y.toFixed(6);
+				coordLabel.x=event.stageX+10;
+				coordLabel.y=event.stageY-64;*/
+			}
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<fx:Style>
+		.InfoSymbolStyle1
+		{
+			borderThickness: 1;
+			infoPlacement: upperLeft;
+			borderColor: #FFFFFF;
+			backgroundColor: #285BA5;
+			paddingLeft: 5;
+			paddingRight: 5;
+			paddingTop: 5;
+			paddingBottom: 5;
+		}
+		.InfoSymbolStyle2
+		{
+			infoPlacement: upperLeft;
+			borderThickness: 3;
+			borderColor: #FFFFFF;
+			backgroundColor: #00FF00;
+			paddingLeft: 2;
+			paddingRight: 2;
+			paddingTop: 2;
+			paddingBottom: 2;
+		}
+		@namespace esri "http://www.esri.com/2008/ags";
+		@namespace s "library://ns.adobe.com/flex/spark";
+		
+		esri|InfoSymbolWindow
+		{
+			
+			backgroundColor: #0066ff;
+			border-color: #0066ff;
+			border-thickness: 1;
+			info-placement: bottom;
+		}
+	</fx:Style>
+	
+	<fx:Declarations>
+		<!-- Symbol for all point shapes -->
+		<esri:SimpleMarkerSymbol id="sms"
+								 color="0x00FF00"
+								 size="12"
+								 style="square"/> 
+		<!-- Symbol for all line shapes -->
+		<esri:SimpleLineSymbol id="sls"
+							   width="2"
+							   color="#285BA5"/>
+		
+		<!-- Symbol for all polygon shapes -->
+		<esri:SimpleFillSymbol id="sfs"
+							   color="0xFFFFFF"
+							   style="diagonalcross">
+			<esri:outline>
+				<esri:SimpleLineSymbol width="2" color="#285BA5"/>
+			</esri:outline>
+		</esri:SimpleFillSymbol>
+		<esri:DrawTool id="myDrawTool"
+					   drawEnd="drawTool_drawEndHandler(event)"
+					   fillSymbol="{sfs}"
+					   graphicsLayer="{myGraphicsLayer1}"
+					   lineSymbol="{sls}"
+					   map="{myMap}"
+					   markerSymbol="{sms}"/>
+		
+		
+		
+		<esri:InfoSymbol id="myInfoSymbol" containerStyleName="InfoSymbolStyle1">
+			<esri:infoRenderer>
+				<fx:Component>
+					<s:DataRenderer>
+						<s:Label fontSize="14"
+								 fontWeight="bold"
+								 paddingBottom="3"
+								 paddingLeft="3"
+								 paddingRight="3"
+								 paddingTop="3"
+								 color="0xFFFFFF"							
+								 text="{data.distance}"/>
+					</s:DataRenderer>
+				</fx:Component>
+			</esri:infoRenderer>
+		</esri:InfoSymbol>
+		
+		<esri:GeometryService id="geometryService"
+							  
+							  lengthsComplete="lengthsCompleteHandler(event)"
+							  simplifyComplete="geometryService_simplifyCompleteHandler(event)"
+							  showBusyCursor="true"
+							  url="http://sampleserver6.arcgisonline.com/arcgis/rest/services/Utilities/Geometry/GeometryServer"/>
+		<s:NumberFormatter id="myNumberFormatter"
+						   fractionalDigits="2"
+						   useGrouping="true"/>
+		
+		
+		
+		
+		
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.events.DrawEvent;
+			
+			import mx.events.ItemClickEvent;
+			
+			import spark.events.IndexChangeEvent;
+			
+			import com.esri.ags.events.GeometryServiceEvent;
+			import com.esri.ags.tasks.supportClasses.LengthsParameters;
+			import com.esri.ags.tasks.supportClasses.CalculationType;
+			
+			import com.esri.ags.tasks.supportClasses.ProjectParameters;
+			import mx.rpc.AsyncResponder;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.tasks.supportClasses.AreasAndLengthsParameters;
+			import com.esri.ags.tasks.supportClasses.AreasAndLengthsResult;
+			import mx.rpc.Fault;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.utils.GeometryUtil;
+			import com.esri.ags.geometry.Extent;	
+			
+			var DrawPanel_Flag:Boolean=false;
+			var add_route_Flag:Boolean=false;
+			var layers_change_Flag:Boolean=false;
+			[Bindable]private var latestEndpoint:MapPoint;
+			protected function tbb_itemClickHandler(event:ItemClickEvent):void
+			{
+				if (tbb.selectedIndex < 0)
+				{
+					// when toggling a tool off, deactivate it
+					myDrawTool.deactivate();
+				}
+				else
+				{
+					switch (event.item.label)
+					{
+						/*	case "MAPPOINT":
+						{
+						myDrawTool.activate(DrawTool.MAPPOINT);
+						break;
+						}*/
+						/* case "MULTIPOINT":
+						myDrawTool.activate(DrawTool.MULTIPOINT);
+						break; */
+						/* case "Single Line":
+						myDrawTool.activate(DrawTool.LINE);
+						break; */
+						case "POLYLINE":
+						{
+							myDrawTool.activate(DrawTool.POLYLINE);																											
+							break;
+						}
+						case "FREEHAND_POLYLINE":
+						{
+							myDrawTool.activate(DrawTool.FREEHAND_POLYLINE);																																			
+							break;
+						}
+						case "POLYGON":
+						{
+							myDrawTool.activate(DrawTool.POLYGON);
+							break;
+						}
+						case "FREEHAND_POLYGON":
+						{
+							myDrawTool.activate(DrawTool.FREEHAND_POLYGON);
+							break;
+						}
+						case "EXTENT":
+						{
+							myDrawTool.activate(DrawTool.EXTENT);
+							break;
+						}
+						case "CIRCLE":
+						{
+							myDrawTool.activate(DrawTool.CIRCLE);
+							break;
+						}
+						case "ELLIPSE":
+						{
+							myDrawTool.activate(DrawTool.ELLIPSE);
+							break;
+						}
+					}
+				}
+			}
+			
+			protected function drawTool_drawEndHandler(event:DrawEvent):void
+			{
+				
+				
+				switch (tbb.selectedIndex)
+				{
+					/*	case "MAPPOINT":
+					{
+					myDrawTool.activate(DrawTool.MAPPOINT);
+					break;
+					}*/
+					/* case "MULTIPOINT":
+					myDrawTool.activate(DrawTool.MULTIPOINT);
+					break; */
+					/* case "Single Line":
+					myDrawTool.activate(DrawTool.LINE);
+					break; */
+					//case "POLYLINE":
+					case 0:
+					{
+						var drawnLine:Polyline = Polyline(event.graphic.geometry);						
+						var lengthsParameters:LengthsParameters = new LengthsParameters();				
+						lengthsParameters.calculationType = CalculationType.GEODESIC;
+						lengthsParameters.polylines = [ drawnLine ];
+						
+						latestEndpoint = drawnLine.paths[0][0] as MapPoint;
+						
+						geometryService.lengths(lengthsParameters);	;																											
+						break;
+					}
+						//case "FREEHAND_POLYLINE":
+					case 1:
+					{
+						var drawnLine:Polyline = Polyline(event.graphic.geometry);						
+						var lengthsParameters:LengthsParameters = new LengthsParameters();				
+						lengthsParameters.calculationType = CalculationType.GEODESIC;
+						lengthsParameters.polylines = [ drawnLine ];
+						
+						latestEndpoint = drawnLine.paths[0][0] as MapPoint;
+						
+						geometryService.lengths(lengthsParameters);																																				
+						break;
+					}
+						//case "POLYGON":
+					case 2:
+					{
+						var polygon:Polygon = event.graphic.geometry as Polygon;
+						if (GeometryUtil.polygonSelfIntersecting(polygon))
+						{
+							// simplify the drawn polygon
+							// Note: As of version 2.0, GeometryService input is geometries (instead of graphics).
+							geometryService.simplify([ polygon ]);
+						}
+						else
+						{
+							//addPolygonToMap(polygon);
+							projectPolygon(polygon);
+						}
+						break;
+					}
+						//case "FREEHAND_POLYGON":
+					case 3:
+					{
+						var polygon:Polygon = event.graphic.geometry as Polygon;
+						if (GeometryUtil.polygonSelfIntersecting(polygon))
+						{
+							// simplify the drawn polygon
+							// Note: As of version 2.0, GeometryService input is geometries (instead of graphics).
+							geometryService.simplify([ polygon ]);
+						}
+						else
+						{
+							//addPolygonToMap(polygon);
+							projectPolygon(polygon);
+						}
+						break;
+					}
+						//case "EXTENT":
+					case 4:
+					{
+						var polygon:Polygon = event.graphic.geometry as Polygon;
+						if (GeometryUtil.polygonSelfIntersecting(polygon))
+						{
+							// simplify the drawn polygon
+							// Note: As of version 2.0, GeometryService input is geometries (instead of graphics).
+							geometryService.simplify([ polygon ]);
+						}
+						else
+						{
+							//addPolygonToMap(polygon);
+							projectPolygon(polygon);
+						}
+						break;
+					}
+						//case "CIRCLE":
+					case 5:
+					{
+						var polygon:Polygon = event.graphic.geometry as Polygon;
+						if (GeometryUtil.polygonSelfIntersecting(polygon))
+						{
+							// simplify the drawn polygon
+							// Note: As of version 2.0, GeometryService input is geometries (instead of graphics).
+							geometryService.simplify([ polygon ]);
+						}
+						else
+						{
+							//addPolygonToMap(polygon);
+							projectPolygon(polygon);
+						}
+						break;
+					}
+						//case "ELLIPSE":
+					case 6:
+					{
+						var polygon:Polygon = event.graphic.geometry as Polygon;
+						if (GeometryUtil.polygonSelfIntersecting(polygon))
+						{
+							// simplify the drawn polygon
+							// Note: As of version 2.0, GeometryService input is geometries (instead of graphics).
+							geometryService.simplify([ polygon ]);
+						}
+						else
+						{
+							//addPolygonToMap(polygon);
+							projectPolygon(polygon);
+						}
+						break;
+					}
+				}
+				
+				// reset after finished drawing a feature
+				myDrawTool.deactivate();
+				tbb.selectedIndex = -1;
+				
+				
+			}
+			//------line
+			
+			private function lengthsCompleteHandler(event:GeometryServiceEvent):void
+			{
+				// Report as meters if less than 3km, otherwise km
+				var dist:Number = (event.result as Array)[0];
+				var myAttributes:Object = {};
+				if (dist < 3000)
+				{
+					myAttributes.distance = Math.round(dist) + " m";
+				}
+				else
+				{
+					myAttributes.distance = Number(dist / 1000).toFixed(1) + " km";
+				}
+				var g:Graphic = new Graphic(latestEndpoint, myInfoSymbol, myAttributes);
+				//resultLayer.add(g);
+				myGraphicsLayer1.add(g);
+			}
+			
+			
+			//---area
+			private function geometryService_simplifyCompleteHandler(event:GeometryServiceEvent):void
+			{
+				// Note: GeometryService returns geometries instead of graphics as of Flex API 2.0
+				if (event.result)
+				{
+					var polygon:Polygon = (event.result as Array)[0]; // we only draw one area at a time
+					//addPolygonToMap(polygon);
+					projectPolygon(polygon);
+				}
+			}
+			private function addPolygonToMap(polygon:Polygon):void
+			{
+				var newGraphic:Graphic = new Graphic(polygon);
+				myGraphicsLayer1.add(newGraphic);
+			}
+			
+			private function projectPolygon(polygon:Polygon):void
+			{
+				// project to 54034 (World_Cylindrical_Equal_Area)
+				const projectParameters:ProjectParameters = new ProjectParameters;
+				projectParameters.geometries = [ polygon ];
+				projectParameters.outSpatialReference = new SpatialReference(102100);
+				geometryService.project(projectParameters, new AsyncResponder(project_resultHandler, project_faultHandler, polygon));
+			}
+			private function project_resultHandler(result:Object, token:Object = null):void
+			{
+				if (result)
+				{
+					var polygon:Geometry = (result as Array)[0];
+					var areasAndLengthsParameters:AreasAndLengthsParameters = new AreasAndLengthsParameters();
+					areasAndLengthsParameters.areaUnit = GeometryService.UNIT_SQUARE_KILOMETERS;
+					areasAndLengthsParameters.polygons = [ polygon ];					
+					geometryService.areasAndLengths(areasAndLengthsParameters, new AsyncResponder(areasAndLengths_resultHandler, areasAndLengths_faultHandler, token));
+				}
+			}
+			private function project_faultHandler(fault:Fault, token:Object = null):void
+			{
+				Alert.show(fault.faultString + "\n\n" + fault.faultDetail, "project Fault " + fault.faultCode);
+			}
+			private function areasAndLengths_resultHandler(result:AreasAndLengthsResult, token:Object = null):void
+			{
+				const area:String = myNumberFormatter.format(result.areas[0]);
+				geometryService.labelPoints([ token ], new AsyncResponder(labelPoints_resultHandler, labelPoints_faultHandler, area + " km2"));
+			}
+			private function areasAndLengths_faultHandler(fault:Fault, token:Object = null):void
+			{
+				Alert.show(fault.faultString + "\n\n" + fault.faultDetail, "areasAndLengths Fault " + fault.faultCode);
+			}
+			private function labelPoints_resultHandler(result:Object, token:Object = null):void
+			{
+				for each (var geom:Geometry in result)
+				{
+					var g:Graphic = new Graphic();
+					g.geometry = geom;
+					var tf:TextFormat = new TextFormat(null, 18, 0x41423A);
+					g.symbol = new TextSymbol(String(token), null, 0xFFFFFF, 1, true, 0x41423A, true,
+						0xD8DACC, "middle", 0, 0, 0, tf);
+					myGraphicsLayer1.add(g);
+				}
+			}
+			private function labelPoints_faultHandler(fault:Fault, token:Object = null):void
+			{
+				Alert.show(fault.faultString + "\n\n" + fault.faultDetail, "labelPoints Fault " + fault.faultCode);
+			}
+			
+			
+			protected function DrawRoute_Butt_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+				
+				//var DrawWindow:MeasureTool = new MeasureTool();
+				
+				//PopUpManager.addPopUp(DrawWindow,this);
+				//PopUpManager.centerPopUp(DrawWindow);
+				if(DrawPanel_Flag==false)
+				{
+					DrawPanel.visible=true;
+					DrawRoute_img.height=65;
+					DrawPanel_Flag=true;
+					
+				}
+				else if(DrawPanel_Flag==true)
+				{
+					//drawGraphicsLayer.clear();
+					myGraphicsLayer1.clear();
+					DrawPanel.visible=false;
+					DrawRoute_img.height=40;
+					DrawPanel_Flag=false;
+					myDrawTool.deactivate();
+				}
+				
+				
+				
+			}
+			
+			protected function add_route_Butt_clickHandler(event:MouseEvent):void
+			{
+				if(add_route_Flag==false)
+				{
+					add_route.visible=true;
+					add_route_img.height=65;
+					add_route_Flag=true;
+					
+				}
+				else if(add_route_Flag==true)
+				{
+					add_route.visible=false;
+					add_route_img.height=40;
+					add_route_Flag=false;
+				}
+			}
+			protected function layers_change_Butt_clickHandler(event:MouseEvent):void
+			{
+				if(layers_change_Flag==false)
+				{
+					layers_change.visible=true;
+					layers_change_img.height=65;
+					layers_change_Flag=true;
+					
+				}
+				else if(layers_change_Flag==true)
+				{
+					layers_change.visible=false;
+					layers_change_img.height=40;
+					layers_change_Flag=false;
+				}
+			}
+/*		protected function home_img_clickHandler(event:MouseEvent):void
+			{
+				if(menu_panel.visible==false)
+				{
+					
+					menu_panel.visible=true;
+					home_img.left=50;
+					
+					
+				}
+				else if(menu_panel.visible==true)
+				{
+					home_img.left=55;
+					menu_panel.visible=false;
+					
+					layers_change.visible=false;
+					layers_change_img.height=40;
+					layers_change_Flag=false;
+					add_route.visible=false;
+					add_route_img.height=40;
+					add_route_Flag=false;
+					DrawPanel.visible=false;
+					DrawRoute_img.height=40;
+					DrawPanel_Flag=false;
+					myGraphicsLayer1.clear();
+					myDrawTool.deactivate();
+				}
+			}
+	*/
+					
+		]]>
+	</fx:Script>
+	
+	<esri:Map id="myMap"
+			  level="4"
+			  load="myMap.centerAt(new MapPoint(13493598.583, 3838587.603));init()"
+			  logoVisible="false"
+			  wrapAround180="true"
+			  mapNavigationEnabled="true"   zoomSliderVisible="true"
+			  >
+		
+		<esri:ArcGISTiledMapServiceLayer show="layerShowHandler(event)"
+										 url="http://server.arcgisonline.com/ArcGIS/rest/services/Ocean_basemap/MapServer"
+										 visible="{bb.selectedIndex == 0}"/>
+		<esri:ArcGISTiledMapServiceLayer show="layerShowHandler(event)"
+										 url="http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer"
+										 visible="{bb.selectedIndex == 1}"/>
+		<esri:ArcGISTiledMapServiceLayer show="layerShowHandler(event)"
+										 url="http://222.66.161.188:7080/PBS/rest/services/JiDidituMap/MapServer"
+										 visible="{bb.selectedIndex == 2}"/>  
+		
+		<!--http://192.168.11.17/ArcGIS/rest/services/DefaultMap/MapServer-->
+		<!--http://202.121.66.51:6080/arcgis/rest/services/JDMapServices/%E5%BA%95%E5%9B%BE/MapServer-->
+		<!--http://192.168.10.62:7080/PBS/rest/services/JiDidituMap/MapServer-->
+		
+		<esri:GraphicsLayer id="drawGraphicsLayer"/>
+		<esri:GraphicsLayer id="graphicsLayer"/>
+		<esri:GraphicsLayer id="myGraphicsLayer1"/>
+	</esri:Map>
+	<!--<s:Panel id="myPanel" skinClass="MySkin" width="300" height="100%" right="0" top="0" borderVisible="false" alpha="0.8" >-->
+	
+	<!--<s:Label id="coordLabel" visible="false" fontSize="15"/>-->
+	<!--</s:Panel>-->
+	<!--<s:Button id="barMovwButton" mouseDown="" mouseUp="" buttonDown="" click="barMoveHandler(event)" width="25" height="25" ></s:Button>-->
+	<!--<s:Image id="barMovwButton" mouseOver="barMoveHandler(event)" width="25" height="25" ></s:Image>-->
+	
+	<s:Image id="Panel_playButton" source="@Embed('images/left.png')" width="25" height="25" right="300" top="0" alpha="1"
+			 click="Panel_playButton_click()" mouseMove="Panel_playButton_mouseMoveHandler(event)" mouseOut="Panel_playButton_mouseOutHandler(event)"
+			 buttonMode="true" useHandCursor="true"/>
+	<!--<s:Panel id="s2" height="35" width="100%">-->
+
+	<s:Button id="showLegendButton" click="onClickShow()" width="25" height="25" top="{this.height-500}" left="330" cornerRadius="0" 
+			  color="0x000000" alpha="0.5" focusAlpha="1" icon="images/left1.png" buttonMode="true" useHandCursor="true">
+	</s:Button>
+	<!--<s:Image id="home_img" source="@Embed('assets/home2.png')" toolTip="菜单" click="home_img_clickHandler(event)" alpha.drawingSelectionState="0.8"  
+			 height="45" width="45" left="55" top="8" buttonMode="true" useHandCursor="true"></s:Image>-->
+	<s:Label id="logANDlat" top="{this.height-70}" left="2" fontSize="14" />
+	<!--</s:Panel>-->
+	
+	
+	
+	<s:Panel id="DrawPanel" width="0" height="0" visible="false" backgroundAlpha="0.6"
+			 left="80" top="62"
+			 borderVisible="false"  skinClass="MySkin">
+		<s:controlBarContent>
+			<s:HGroup width="100%" horizontalAlign="center">
+				<mx:ToggleButtonBar id="tbb"
+									itemClick="tbb_itemClickHandler(event)"
+									labelField="null"
+									selectedIndex="-1"
+									toggleOnClick="true">
+					<!--	<fx:Object icon="@Embed(source='assets/i_draw_point.png')" label="MAPPOINT"/>-->
+					<fx:Object icon="@Embed(source='assets/i_draw_line.png')" label="POLYLINE"/>
+					<fx:Object icon="@Embed(source='assets/i_draw_freeline.png')" label="FREEHAND_POLYLINE"/>
+					<fx:Object icon="@Embed(source='assets/i_draw_poly.png')" label="POLYGON"/>
+					<fx:Object icon="@Embed(source='assets/i_draw_freepoly.png')" label="FREEHAND_POLYGON"/>
+					<!--<fx:Object icon="@Embed(source='assets/i_draw_rect.png')" label="EXTENT"/>-->
+					<fx:Object icon="@Embed(source='assets/i_draw_circle.png')" label="CIRCLE"/>
+					<fx:Object icon="@Embed(source='assets/i_draw_ellipse.png')" label="ELLIPSE"/>
+				</mx:ToggleButtonBar>
+			</s:HGroup>
+		</s:controlBarContent>
+	</s:Panel>
+	<s:Panel id="add_route" width="240" height="40" visible="false" backgroundAlpha="0.6"
+			 left="60" top="62"
+			 borderVisible="false"  skinClass="MySkin">
+		<s:HGroup top="8" left="6">
+			<s:ComboBox id="missionBox" width="200" change="comboBoxChange(event)" >				
+			</s:ComboBox>
+			<s:Image source="@Embed('assets/Glyph_Add.png')" toolTip="添加" click="addPath()"  height="20" width="20" buttonMode="true" useHandCursor="true"></s:Image>
+			<!--<s:Button label="添加航迹" click="addPath()" top="15" width="68"></s:Button>-->
+		</s:HGroup>
+		
+	</s:Panel>
+	<s:Panel id="layers_change" width="240" height="36" visible="false" backgroundAlpha="0.6"
+			 left="260" top="62"
+			 borderVisible="false"  skinClass="MySkin">
+		<s:ButtonBar id="bb"
+					 top="8"
+					 horizontalCenter="0"
+					 requireSelection="true">
+			<s:dataProvider>
+				<s:ArrayList>						
+					<fx:String>海洋矢量</fx:String>
+					<fx:String>卫星</fx:String>
+					<fx:String>海洋暗色</fx:String>
+				</s:ArrayList>
+			</s:dataProvider>				
+		</s:ButtonBar>
+		
+	</s:Panel>
+	<s:Panel id="menu_panel" height="58" width="400" top="1" left="100" borderVisible="false"  skinClass="MySkin" backgroundAlpha="0.6" cornerRadius="0" visible="true">			
+		<s:HGroup top="6" left="20">
+			
+			
+			<s:Image id="add_route_img" source="@Embed('assets/map_add.png')" toolTip="添加航迹" click="add_route_Butt_clickHandler(event)"  height="40" width="40" buttonMode="true" useHandCursor="true"></s:Image>
+			<s:Image id="cur_Location_img" source="@Embed('assets/04_maps.png')" toolTip="当前位置" click="currentPosition()"  height="40" width="40" buttonMode="true" useHandCursor="true"></s:Image>
+			<s:Image id="DrawRoute_img" source="@Embed('assets/ruler_square.png')" toolTip="测量"  width="40" height="40" click="DrawRoute_Butt_clickHandler(event)" buttonMode="true" useHandCursor="true"></s:Image>
+			<s:Image source="@Embed('assets/maintenance.png')" toolTip="数据统计"  width="40" height="40" click="popupChart()" buttonMode="true" useHandCursor="true"></s:Image>
+			<s:Image source="@Embed('assets/download.png')" toolTip="航迹下载" click="popupExport()"  height="40" width="40" buttonMode="true" useHandCursor="true"></s:Image>
+			<s:Image id="layers_change_img" source="@Embed('assets/i_layers.png')" toolTip="地图切换" click="layers_change_Butt_clickHandler(event)"  height="40" width="40" buttonMode="true" useHandCursor="true"></s:Image>
+			<s:Image source="@Embed('assets/symbol_information.png')" toolTip="关于我们" click="{popupAboutUS()}" height="40" width="40" buttonMode="true" useHandCursor="true"></s:Image>
+			<s:Image source="@Embed('assets/window_fullscreen.png')" toolTip="全屏" click="{fullScr()}" height="40" width="40" buttonMode="true" useHandCursor="true"></s:Image>
+			
+		</s:HGroup>
+		
+		
+		
+		
+		
+		<!--click="{stage.displayState=StageDisplayState.FULL_SCREEN}"-->
+		
+	</s:Panel>
+	
+
+</s:Application>

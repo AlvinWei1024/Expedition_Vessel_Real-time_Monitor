@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   backgroundColor="#FFFFFF"
+			    width="400" height="340" title="关于我们"
+			   creationComplete=""  initialize="initi()"
+			   close="PopUpManager.removePopUp(this);">  <!--creationComplete-initialize-->
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			
+			[Bindable]
+			public var url:String;
+			
+			public function initi():void
+			{
+				this.url = this.url;
+			}
+			
+			public function toSHOUWeb():void
+			{
+				navigateToURL(new URLRequest("http://www.shou.edu.cn"),"_blank");
+			}
+			
+			public function toJiDiWeb():void
+			{
+				navigateToURL(new URLRequest("http://www.pric.gov.cn"),"_blank");
+			}
+			public function toLogWeb():void
+			{
+				navigateToURL(new URLRequest("web/XljkUpdateLog.html"),"_blank");
+			}
+			
+			protected function shouImg_mouseMoveHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				shouImg.alpha=0.8;
+			}
+			protected function shouImg_mouseOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				shouImg.alpha=1;
+			}
+			
+			protected function jdzxImg_mouseMoveHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				jdzxImg.alpha=0.8;
+			}
+			
+			protected function jdzxImg_mouseOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				jdzxImg.alpha=1;
+			}
+			
+		]]>
+		
+		
+	</fx:Script>
+	
+	<s:VGroup width="100%" height="100%" horizontalAlign="left" paddingBottom="10" paddingTop="10" paddingLeft="10"
+			  paddingRight="10">
+		<s:TextArea text="雪龙监控 V1.2" editable="false" borderVisible="false" 
+					width="380" height="30"
+					fontSize="15" paddingLeft="145" paddingTop="10" paddingRight="10" paddingBottom="10">
+		</s:TextArea>
+		<s:TextArea text="        本系统由中国极地中心和上海海洋大学数字海洋研究所合作开发。系统提供了雪龙船航迹的查看，航迹下载，数据统计以及雪龙船的当前位置、天气、水文等信息。实时、动态地展示了极地科考的相关信息。" editable="false" borderVisible="false" 
+					width="380" height="120"
+					fontSize="15" paddingLeft="10" paddingTop="10" paddingRight="10" paddingBottom="10">
+		</s:TextArea>
+		
+		<s:HGroup horizontalAlign="right">
+			<s:Label width="320"/>
+			<s:Label id="f1" text="更新日志" buttonMode="true" useHandCursor="true" click="toLogWeb()" textDecoration="underline" color="blue"/>
+		</s:HGroup>
+	    
+		<s:HGroup paddingTop="-30">
+			<s:HGroup paddingTop="11" paddingLeft="5">
+				<s:Image id="jdzxImg" source="images/jdzx.png" width="180" click="toJiDiWeb()" 
+						 mouseMove="jdzxImg_mouseMoveHandler(event)" mouseOut="jdzxImg_mouseOutHandler(event)"
+						 buttonMode="true" useHandCursor="true">
+				</s:Image>
+			</s:HGroup>
+			<s:HGroup paddingLeft="5">
+				<s:Image id="shouImg" source="images/shou.png" width="180" click="toSHOUWeb()" 
+						 mouseMove="shouImg_mouseMoveHandler(event)" mouseOut="shouImg_mouseOutHandler(event)"
+						 buttonMode="true" useHandCursor="true">
+				</s:Image>
+			</s:HGroup>
+			
+			
+		</s:HGroup>
+		<s:HGroup paddingTop="-30">			
+			<s:Label text="联系方式：liujian@pric.gov.cn          sqhe@shou.edu.cn" paddingLeft="40"/>			
+		</s:HGroup>
+		
+	</s:VGroup>
+	
+	
+</s:TitleWindow>

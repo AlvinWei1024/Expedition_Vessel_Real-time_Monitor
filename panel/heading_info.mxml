@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 initialize="initi()"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="500" height="150">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:WebService id="bdwc" useProxy="false">
+			
+			<s:operation name="getInfobyId"
+						 fault="faultmsg(event)"
+						 result="getInfobyId(event)"/>
+		</s:WebService>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			
+			import flashx.textLayout.formats.Float;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.*;
+			private var result_Info:Array = new Array;//返回结果数据
+			
+			[Bindable]
+			public var d1_info:String;
+			
+			public var flag:int;
+			public var timer:Timer = new Timer(5000);
+            public var url:String;
+			
+			public function initi():void
+			{
+                this.bdwc.wsdl = this.url;
+				init();
+				timer.addEventListener(TimerEvent.TIMER, timeHandler);
+				timer.start();
+				
+			}
+			
+			public function init():void
+			{
+				
+				//获取GPS表信息
+				//var strSqlWService1:String = "select * from (select t_log, HEADING, RATEOFTURN from hd_compass order by t_log DESC) where rownum=1";
+				var strSqlWService1:String = "select * from (select T_LOG, HEADING, RATEOFTURN from CJ_TEMP_COMPASS order by T_LOG DESC) where rownum=1";
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService1));
+			}
+			
+			public function timeHandler(evt:TimerEvent):void 
+			{
+				init();	
+			}
+			
+			private function faultmsg(event:FaultEvent):void 
+			{
+				Alert.show(event.message.toString());
+			}
+			
+			protected function getInfobyId(event:ResultEvent):void
+			{
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				if (result_Info.length > 0) 
+				{
+					//判断结果中是否有SPEED字段，进而判断该结果为什么信息
+					if (result_Info[0].hasOwnProperty("HEADING"))
+					{
+						
+						
+						var getimg:getNumImg=new getNumImg(); 
+						getimg.removeElements(group_img1);
+						getimg.removeElements(group_img2);
+											
+						var headingstring:String = result_Info[0].HEADING as String;
+						if(headingstring=="-999"||headingstring=="-9999") headingstring="0";
+						var headingstringarray:Array = headingstring.split('.');
+						
+						var ratestring:String = result_Info[0].RATEOFTURN as String;
+						if(ratestring=="-999"||ratestring=="-9999") ratestring="0";
+						var ratestringarray:Array = ratestring.split('.');
+						
+						var fomartNum:stand_num=new stand_num();
+						var heading_s:String=fomartNum.fomart_num(headingstringarray[0],3);
+						var headingfinal_s:String=fomartNum.fomart_num(headingstringarray[1],1);
+						
+						var rate_s:String;
+						var ratevalue:int=int(ratestringarray[0]);
+						if(ratevalue<0)    //判断正负号
+						{
+							var img_minus:Image=new Image();
+							img_minus.source="images/minus.png";
+							img_minus.width=23;
+							this.group_img2.addElement(img_minus);
+							ratevalue=ratevalue*-1;
+						}
+						else if(ratevalue>=0)
+						{
+							var img_pluss:Image=new Image();
+							img_pluss.source="images/pluss.png";
+							img_pluss.width=23;
+							this.group_img2.addElement(img_pluss);
+						}
+						rate_s=fomartNum.fomart_num(ratevalue.toString(),2);
+						var ratefinal_s:String=fomartNum.fomart_num(ratestringarray[1],1);
+						
+						
+						getimg.get_NumImg(heading_s,group_img1,23);
+						
+						var img_p:Image=new Image();
+						img_p.source= "images/point.png";
+						img_p.width=23;
+						group_img1.addElement(img_p);
+						getimg.get_NumImg(headingfinal_s,group_img1,23);
+						var img_degree2:Image=new Image();
+						img_degree2.source= "images/degree.png";
+						img_degree2.width=23;
+						group_img1.addElement(img_degree2);
+						
+						
+						getimg.get_NumImg(rate_s,group_img2,23);
+						var img_p1:Image=new Image();
+						img_p1.source= "images/point.png";
+						img_p1.width=23;
+						group_img2.addElement(img_p1);
+						
+						getimg.get_NumImg(ratefinal_s,group_img2,23);
+						
+					/*	var lab1:Label=new Label();
+						lab1.text=" °/min";
+						group_img2.addElement(lab1);
+					*/		
+						
+					}
+					
+				}
+				else if(result_Info.length == 0)
+				{
+					var getimg:getNumImg=new getNumImg(); 
+					getimg.removeElements(group_img1);
+					getimg.removeElements(group_img2);
+					
+					var headingstring:String = "0";
+					
+					var headingstringarray:Array = headingstring.split('.');
+					
+					var ratestring:String = "0";
+					
+					var ratestringarray:Array = ratestring.split('.');
+					
+					var fomartNum:stand_num=new stand_num();
+					var heading_s:String=fomartNum.fomart_num(headingstringarray[0],3);
+					var headingfinal_s:String=fomartNum.fomart_num(headingstringarray[1],1);
+					
+					var rate_s:String;
+					var ratevalue:int=int(ratestringarray[0]);
+					if(ratevalue<0)    //判断正负号
+					{
+						var img_minus:Image=new Image();
+						img_minus.source="images/minus.png";
+						img_minus.width=23;
+						this.group_img2.addElement(img_minus);
+						ratevalue=ratevalue*-1;
+					}
+					else if(ratevalue>=0)
+					{
+						var img_pluss:Image=new Image();
+						img_pluss.source="images/pluss.png";
+						img_pluss.width=23;
+						this.group_img2.addElement(img_pluss);
+					}
+					rate_s=fomartNum.fomart_num(ratevalue.toString(),2);
+					var ratefinal_s:String=fomartNum.fomart_num(ratestringarray[1],1);
+					
+					
+					getimg.get_NumImg(heading_s,group_img1,23);
+					
+					var img_p:Image=new Image();
+					img_p.source= "images/point.png";
+					img_p.width=23;
+					group_img1.addElement(img_p);
+					getimg.get_NumImg(headingfinal_s,group_img1,23);
+					var img_degree2:Image=new Image();
+					img_degree2.source= "images/degree.png";
+					img_degree2.width=23;
+					group_img1.addElement(img_degree2);
+					
+					
+					getimg.get_NumImg(rate_s,group_img2,23);
+					var img_p1:Image=new Image();
+					img_p1.source= "images/point.png";
+					img_p1.width=23;
+					group_img2.addElement(img_p1);
+					
+					getimg.get_NumImg(ratefinal_s,group_img2,23);
+				}
+				
+			}
+					
+			
+		]]>
+	</fx:Script>
+	
+
+	<s:VGroup paddingTop="5">
+		<s:HGroup paddingLeft="5">
+			<s:Image source="images/Icons/compass.png" width="45" height="45" horizontalCenter="true"></s:Image>
+			<s:Label width="200" text="罗经信息(回转速率：°/min)" fontSize="15" paddingTop="15"/>
+		</s:HGroup>
+		<s:Label paddingLeft="13" paddingTop="10" text="船   艏   向：" fontSize="12" />
+		<s:Group>
+			<s:Rect height="51" width="185" x="95" y="-37">
+				<s:fill>
+					<s:BitmapFill source="@Embed('images/numBack.png')"/>
+				</s:fill>
+			</s:Rect>
+			<s:HGroup paddingLeft="107" paddingTop="-45" id="group_img1" >
+			</s:HGroup>
+		</s:Group>
+		
+		
+		<s:Label paddingLeft="5" paddingTop="10" text=" 船头回转速率：  " fontSize="12" />
+		<s:Group>
+			<s:Rect height="51" width="160" x="95" y="-37">
+				<s:fill>
+					<s:BitmapFill source="@Embed('images/numBack.png')"/>
+				</s:fill>
+			</s:Rect>
+			<s:HGroup paddingLeft="107" paddingTop="-46" id="group_img2" >
+			</s:HGroup>
+		</s:Group>
+	</s:VGroup>
+	<s:Label id="lab_long"/>
+</s:Group>

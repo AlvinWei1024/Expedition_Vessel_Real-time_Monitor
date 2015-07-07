@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+               xmlns:s="library://ns.adobe.com/flex/spark"
+               minWidth="955" minHeight="600" initialize="init(event)">
+
+    <fx:Declarations>
+        <!-- 将非可视元素（例如服务、值对象）放在此处 -->
+        <s:WebService wsdl="http://spatial.polar.gov.cn:808/Service_fbc.asmx?wsdl" id="bdwc" useProxy="false">
+            <s:operation name="getInfobyId"
+                         fault="faultmsg(event)"
+                         result="getInfobyId(event)"/>
+        </s:WebService>
+    </fx:Declarations>
+    <fx:Script>
+		<![CDATA[
+        import com.adobe.serialization.json.JSON;
+
+        import mx.controls.Alert;
+        import mx.events.FlexEvent;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+
+        import shou.*;
+
+        private var result_Info:Array = new Array;//返回结果数据
+        private var xmlOper:XMLOperator = new XMLOperator();
+        [Bindable]
+        public var d1_info:String;
+        private var Group:Group_Staff;
+        public var length:int;
+        private var btn:shipbtn;
+
+
+        protected function init(event:FlexEvent):void {
+            // TODO Auto-generated method stub
+
+            var strSqlWService1:String = "select * FROM HD_STAFF";
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService1));
+            var strSqlWService2:String = "select id,MissionName from hd_mission";
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService2));
+        }
+
+        private function faultmsg(event:FaultEvent):void {
+            Alert.show(event.message.toString());
+        }
+
+        protected function getInfobyId(event:ResultEvent):void {
+            result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+            var i:int;
+            if (result_Info[0].hasOwnProperty("MAJOR")) {
+                for (i = 0; i < result_Info.length; i++) {
+                    var staff1:Staff_Info = new Staff_Info();
+                    staff1.Name = result_Info[i].NAME;
+                    staff1.Sex = result_Info[i].SEX;
+                    staff1.Major = result_Info[i].MAJOR;
+                    staff1.Unit = result_Info[i].UNIT;
+                    staff1.PicURL = result_Info[i].PIC;
+
+                    var staffgroup:Group_Staff = new Group_Staff();
+
+                    staffgroup.data = staff1;
+                    this.Group1.addElement(staffgroup);
+
+
+                }
+            }
+            if (result_Info[0].hasOwnProperty("MISSIONNAME")) {
+                for (i = 0; i < result_Info.length; i++) {
+                    var shipinfo:ShipInfo = new ShipInfo();
+                    shipinfo.MissionName = result_Info[i].MISSIONNAME;
+
+                    var button1:shipbtn = new shipbtn();
+                    button1.data = shipinfo;
+                    this.Group2.addElement(button1)
+                    button1.x = 0;
+                }
+            }
+
+        }
+        ]]>
+	</fx:Script>
+
+    <s:Panel id="MyPanel" x="189" y="0" width="900" height="590" fontSize="20" title="查看员工信息">
+        <s:BorderContainer top="20">
+
+
+            <s:Scroller x="0" height="500">
+                <s:Group x="0" width="220" id="Group2">
+                    <s:layout>
+                        <s:TileLayout>
+
+                        </s:TileLayout>
+                    </s:layout>
+                </s:Group>
+            </s:Scroller>
+
+
+            <s:Scroller x="240" width="660" height="500">
+                <s:Group id="Group1" x="240" width="660">
+                    <s:layout>
+                        <s:TileLayout>
+                        </s:TileLayout>
+                    </s:layout>
+                </s:Group>
+            </s:Scroller>
+        </s:BorderContainer>
+
+    </s:Panel>
+
+</s:Application>

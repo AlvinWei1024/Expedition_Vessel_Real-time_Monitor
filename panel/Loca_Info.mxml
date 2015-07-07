@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 initialize="initi()"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="500" height="170">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:WebService id="bdwc" useProxy="false">
+			
+			<s:operation name="getInfobyId"
+						 fault="faultmsg(event)"
+						 result="getInfobyId(event)"/>
+		</s:WebService>
+		<mx:DateFormatter id="publishDate" formatString="YYYY/MM/DD hh:mi:ss"/>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			import com.anychart.dateTime.DateTimeFormatter;
+			
+			import flashx.textLayout.formats.Float;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.*;
+			
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			private var result_Info:Array = new Array;//返回结果数据
+
+			[Bindable]
+			public var d1_info:String;
+
+			public var flag:int;
+			public var timer:Timer = new Timer(5000);
+            public var url:String;
+			
+			public function initi():void
+			{
+                this.bdwc.wsdl = this.url;
+				init();
+				timer.addEventListener(TimerEvent.TIMER, timeHandler);
+				timer.start();
+				
+			}
+			
+			public function init():void
+			{
+				
+				//获取GPS表信息
+				//var strSqlWService1:String = "select * from (select t_log, latitude, longitude from hd_gps order by t_log DESC) where rownum=1";
+				var strSqlWService1:String = "select * from (select UTC,to_char(UTC,'yyyy/MM/dd HH24:mi:ss') AS T_UTC, LATITUDE, LONGITUDE from CJ_TEMP_GPS order by UTC DESC) where rownum=1";
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService1));
+			}
+						
+			public function timeHandler(evt:TimerEvent):void 
+			{
+				init();	
+			}
+			
+			private function faultmsg(event:FaultEvent):void 
+			{
+				Alert.show(event.message.toString());
+			}
+			
+			protected function getInfobyId(event:ResultEvent):void
+			{
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				if (result_Info.length > 0) 
+				{
+					//判断结果中是否有SPEED字段，进而判断该结果为什么信息
+					if (result_Info[0].hasOwnProperty("LATITUDE"))
+					{
+						var beijinTime:String=result_Info[0].T_UTC;
+						var date:Date = new Date(beijinTime);
+						date.hours+=8;						
+						var format:DateFormatter=new DateFormatter();
+						format.formatString="YYYY/MM/DD HH:NN:SS";
+						
+						beijinTime=format.format(date);
+
+						lb1.text = beijinTime;
+						//lb1.text = result_Info[0].T_LOG;
+						//lb1.text = "2014/03/05 04:23:30";
+						var getimg:getNumImg=new getNumImg(); 
+						getimg.removeElements(group_img1);
+						getimg.removeElements(group_img2);
+						var LON_number:Number;
+						var LON_degree:int;
+						var LON_minute:int;
+						var LON_second:Number;	
+						var LON_number_a:Number;
+						 
+						LON_number=Number(result_Info[0].LONGITUDE);                //经纬度转换
+						
+						if(LON_number<0)
+							LON_number_a=-LON_number;
+						else 
+							LON_number_a=LON_number;
+						
+						LON_degree = Math.floor(LON_number_a) as int;
+						LON_minute = Math.floor((LON_number_a-LON_degree)*60) as int;
+						LON_second = (((LON_number_a-LON_degree)*60-LON_minute)*60) as Number;
+					//	lab_long.text=LON_degree+"°"+LON_minute+"\'"+LON_second.toString().substr(0,7)+"\"";
+						if(LON_number<0)    //判断正负号
+						{
+							var img_minus:Image=new Image();
+							img_minus.source="images/minus.png";
+							img_minus.width=19;
+							this.group_img1.addElement(img_minus);
+							//LON_degree=LON_degree*-1;
+						}
+						else if(LON_number>=0)
+						{
+							var img_pluss:Image=new Image();
+							img_pluss.source="images/pluss.png";
+							img_pluss.width=19;
+							this.group_img1.addElement(img_pluss);
+						}
+						var fomartNum:stand_num=new stand_num();
+						var LON_degree_s:String=fomartNum.fomart_num(LON_degree.toString(),3);
+						var LON_minute_s:String=fomartNum.fomart_num(LON_minute.toString(),2);
+						var LON_second_s:String=fomartNum.fomart_num(LON_second.toString(),2);
+						
+						
+						
+						
+						
+						
+						var LAT_number:Number;
+						var LAT_degree:int;
+						var LAT_minute:int;
+						var LAT_second:Number;	
+						var LAT_number_a:Number;
+						LAT_number=Number(result_Info[0].LATITUDE);                //经纬度转换
+						
+						if(LAT_number<0)
+							LAT_number_a=-LAT_number;
+						else 
+							LAT_number_a=LAT_number;
+						
+						
+						
+						LAT_degree = Math.floor(LAT_number_a) as int;
+						
+						LAT_minute = Math.floor((LAT_number_a-LAT_degree)*60) as int;
+						LAT_second = (((LAT_number_a-LAT_degree)*60-LAT_minute)*60) as Number;
+						if(LAT_number<0)               //判断正负号
+						{
+							var img_minus1:Image=new Image();
+							img_minus1.source="images/minus.png";
+							img_minus1.width=19;
+							this.group_img2.addElement(img_minus1);
+							//LAT_degree=LAT_degree*-1;
+						}
+						else if(LAT_number>=0)
+						{
+							var img_pluss1:Image=new Image();
+							img_pluss1.source="images/pluss.png";
+							img_pluss1.width=19;
+							this.group_img2.addElement(img_pluss1);
+						}
+						var LAT_degree_s:String=fomartNum.fomart_num(LAT_degree.toString(),3);
+						var LAT_minute_s:String=fomartNum.fomart_num(LAT_minute.toString(),2);
+						var LAT_second_s:String=fomartNum.fomart_num(LAT_second.toString(),2);	
+						
+						
+
+						
+						
+						getimg.get_NumImg(LON_degree_s,group_img1,19);//经度
+
+						var img_degree1:Image=new Image();
+						img_degree1.source= "images/degree.png";
+						img_degree1.width=19;
+						group_img1.addElement(img_degree1);
+						
+						
+						getimg.get_NumImg(LON_minute_s,group_img1,19);
+
+						
+						var img_minute1:Image=new Image();
+						img_minute1.source= "images/minute.png";
+						img_minute1.width=19;
+						group_img1.addElement(img_minute1);
+						
+						getimg.get_NumImg(LON_second_s,group_img1,19);
+
+						var img_second1:Image=new Image();
+						img_second1.source= "images/second.png";
+						img_second1.width=19;
+						group_img1.addElement(img_second1);
+						
+						    
+						getimg.get_NumImg(LAT_degree_s,group_img2,19);//纬度
+						var img_degree2:Image=new Image();
+						img_degree2.source= "images/degree.png";
+						img_degree2.width=19;
+						group_img2.addElement(img_degree2);
+						getimg.get_NumImg(LAT_minute_s,group_img2,19);
+						var img_minute2:Image=new Image();
+						img_minute2.source= "images/minute.png";
+						img_minute2.width=19;
+						group_img2.addElement(img_minute2);
+						getimg.get_NumImg(LAT_second_s,group_img2,19);
+						var img_second2:Image=new Image();
+						img_second2.source= "images/second.png";
+						img_second2.width=19;
+						group_img2.addElement(img_second2);
+						
+
+
+					}
+
+				}
+				else if (result_Info.length == 0)
+				{
+					lb1.text = "数据读取错误！";
+					var getimg:getNumImg=new getNumImg(); 
+					getimg.removeElements(group_img1);
+					getimg.removeElements(group_img2);
+					var LON_number:Number;
+					var LON_degree:int;
+					var LON_minute:int;
+					var LON_second:Number;						
+					
+					LON_number=0;                //经纬度转换
+					
+					LON_degree = Math.floor(LON_number) as int;
+					LON_minute = Math.floor((LON_number-LON_degree)*60) as int;
+					LON_second = (((LON_number-LON_degree)*60-LON_minute)*60) as Number;
+					//	lab_long.text=LON_degree+"°"+LON_minute+"\'"+LON_second.toString().substr(0,7)+"\"";
+					if(LON_degree<0)    //判断正负号
+					{
+						var img_minus:Image=new Image();
+						img_minus.source="images/minus.png";
+						img_minus.width=19;
+						this.group_img1.addElement(img_minus);
+						LON_degree=LON_degree*-1;
+					}
+					else if(LON_degree>=0)
+					{
+						var img_pluss:Image=new Image();
+						img_pluss.source="images/pluss.png";
+						img_pluss.width=19;
+						this.group_img1.addElement(img_pluss);
+					}
+					var fomartNum:stand_num=new stand_num();
+					var LON_degree_s:String=fomartNum.fomart_num(LON_degree.toString(),3);
+					var LON_minute_s:String=fomartNum.fomart_num(LON_minute.toString(),2);
+					var LON_second_s:String=fomartNum.fomart_num(LON_second.toString(),2);
+					
+					
+					
+					
+					
+					
+					var LAT_number:Number;
+					var LAT_degree:int;
+					var LAT_minute:int;
+					var LAT_second:Number;						
+					LAT_number=0;                //经纬度转换
+					LAT_degree = Math.floor(LAT_number) as int;
+					LAT_minute = Math.floor((LAT_number-LAT_degree)*60) as int;
+					LAT_second = (((LAT_number-LAT_degree)*60-LAT_minute)*60) as Number;
+					if(LAT_degree<0)               //判断正负号
+					{
+						var img_minus1:Image=new Image();
+						img_minus1.source="images/minus.png";
+						img_minus1.width=19;
+						this.group_img2.addElement(img_minus1);
+						LAT_degree=LAT_degree*-1;
+					}
+					else if(LAT_degree>=0)
+					{
+						var img_pluss1:Image=new Image();
+						img_pluss1.source="images/pluss.png";
+						img_pluss1.width=19;
+						this.group_img2.addElement(img_pluss1);
+					}
+					var LAT_degree_s:String=fomartNum.fomart_num(LAT_degree.toString(),3);
+					var LAT_minute_s:String=fomartNum.fomart_num(LAT_minute.toString(),2);
+					var LAT_second_s:String=fomartNum.fomart_num(LAT_second.toString(),2);	
+					
+					
+					
+					
+					
+					getimg.get_NumImg(LON_degree_s,group_img1,19);//经度
+					
+					var img_degree1:Image=new Image();
+					img_degree1.source= "images/degree.png";
+					img_degree1.width=19;
+					group_img1.addElement(img_degree1);
+					
+					
+					getimg.get_NumImg(LON_minute_s,group_img1,19);
+					
+					
+					var img_minute1:Image=new Image();
+					img_minute1.source= "images/minute.png";
+					img_minute1.width=19;
+					group_img1.addElement(img_minute1);
+					
+					getimg.get_NumImg(LON_second_s,group_img1,19);
+					
+					var img_second1:Image=new Image();
+					img_second1.source= "images/second.png";
+					img_second1.width=19;
+					group_img1.addElement(img_second1);
+					
+					
+					getimg.get_NumImg(LAT_degree_s,group_img2,19);//纬度
+					var img_degree2:Image=new Image();
+					img_degree2.source= "images/degree.png";
+					img_degree2.width=19;
+					group_img2.addElement(img_degree2);
+					getimg.get_NumImg(LAT_minute_s,group_img2,19);
+					var img_minute2:Image=new Image();
+					img_minute2.source= "images/minute.png";
+					img_minute2.width=19;
+					group_img2.addElement(img_minute2);
+					getimg.get_NumImg(LAT_second_s,group_img2,19);
+					var img_second2:Image=new Image();
+					img_second2.source= "images/second.png";
+					img_second2.width=19;
+					group_img2.addElement(img_second2);
+				}
+				
+			}
+			
+			
+
+			
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	<s:VGroup paddingTop="0">
+		<s:HGroup paddingLeft="5">
+			<s:Image source="images/Icons/location.png" width="50" height="50" horizontalCenter="true"></s:Image>
+			<s:Label width="90" text="位置信息" fontSize="15" paddingTop="15"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="25" paddingTop="-15">
+			<s:Label text="时间： " fontSize="12" paddingTop="5"/>
+			<s:Label width="300" id="lb1" paddingTop="3"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="25">			
+			<s:VGroup paddingLeft="43">
+				<s:Group>
+
+                    	<s:Rect height="45" width="284" x="-60" y="10">
+                         <s:fill>
+                                 <s:BitmapFill source="@Embed('images/numBack.png')" >  </s:BitmapFill>
+
+                         </s:fill>
+					</s:Rect>
+					<s:HGroup paddingTop="-2" paddingLeft="-52" id="group_img1">
+					</s:HGroup>
+				</s:Group>
+				
+				<s:Group>
+					<s:Rect height="45" width="284" x="-60" y="-15">
+						<s:fill>
+							<s:BitmapFill source="@Embed('images/numBack.png')">  </s:BitmapFill>
+						</s:fill>
+					</s:Rect>
+					<s:HGroup paddingTop="-27" paddingLeft="-52" id="group_img2">
+					</s:HGroup>
+				</s:Group>	
+			</s:VGroup>	
+		</s:HGroup>
+	</s:VGroup>
+	<s:Label id="lab_long"/>
+</s:Group>

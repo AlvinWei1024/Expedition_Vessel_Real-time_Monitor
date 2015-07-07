@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		   creationComplete="creationCompleteHandler()"
+		   
+		 title="调查船实时信息" fontSize="18"  width="900" skinClass="MySkin" height="100%" borderVisible="false" backgroundAlpha="0.6">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.core.IVisualElement;
+			import mx.events.FlexEvent;
+			
+			import panel.*;
+			
+			private var Panel_Array:ArrayCollection = new ArrayCollection();
+            public var h1:int; //group1的高度
+			public var h2:int; //group1的高度http://maps.gstatic.com/intl/zh-CN_ALL/mapfiles/mapcontrols2.png
+			public var h3:int; //group1的高度
+			public var hx:int; //要添加控件的高度
+            public var url:String;
+
+			private function creationCompleteHandler():void
+			{
+				// TODO Auto-generated method stub
+				group_1.removeAllElements();
+				group_2.removeAllElements();
+				group_3.removeAllElements();
+				Panel_Array.removeAll();
+				h1=group_1.height; //group的高度
+				h2=h3=h1; //group的高度
+				
+				
+				var Panel_1:panel.Loca_Info=new Loca_Info();   //位置信息
+                Panel_1.url = this.url;
+				Panel_Array.addItem(Panel_1);
+				
+				var Panel_SpeedInfo:panel.Speed_Info=new Speed_Info();//航速航向
+                Panel_SpeedInfo.url = this.url;
+				Panel_Array.addItem(Panel_SpeedInfo);
+				
+				var depth_p:Depth=new Depth();//水深
+                depth_p.url = this.url;
+				Panel_Array.addItem(depth_p);
+				
+				var Panel_2:panel.Weather_Info=new Weather_Info;//天气信息
+                Panel_2.url = this.url;
+				Panel_Array.addItem(Panel_2);
+				var Panel_Press:Pressure_Info=new Pressure_Info();//气压 湿度
+                Panel_Press.url = this.url;
+				Panel_Array.addItem(Panel_Press);
+				var Panel_engine:Engine_Info=new Engine_Info();//发动机信息
+                Panel_engine.url = this.url;
+				Panel_Array.addItem(Panel_engine);
+				var Panel_heading:heading_info=new heading_info();//罗经信息
+                Panel_heading.url = this.url;
+				Panel_Array.addItem(Panel_heading);
+				
+				
+				var Panel_WaterTemp:WaterTemp_Info=new WaterTemp_Info();//水温信息
+                Panel_WaterTemp.url = this.url;
+				Panel_Array.addItem(Panel_WaterTemp);
+				
+				var Panel_Salt:Salt_Info=new Salt_Info();//盐度
+                Panel_Salt.url = this.url;
+				Panel_Array.addItem(Panel_Salt);
+				var Panel_CDOM:CDOM_Info=new CDOM_Info();  //有色溶解有机物
+                Panel_CDOM.url = this.url;
+				Panel_Array.addItem(Panel_CDOM);
+				var Panel_CHLA:CHLA_Info=new CHLA_Info();  //有色溶解有机物
+                Panel_CHLA.url = this.url;
+				Panel_Array.addItem(Panel_CHLA);
+				var Panel_depth:Depth_Info=new Depth_Info;//水深
+                Panel_depth.url = this.url;
+				Panel_Array.addItem(Panel_depth);
+
+
+
+
+
+
+
+
+				
+				
+				for(var i:int=0;i<=Panel_Array.length-1;i++)
+				{
+					
+					hx=Panel_Array.getItemAt(i).height;
+					
+					if(h1>=hx)
+					{
+
+						group_1.addElement(Panel_Array.getItemAt(i) as IVisualElement);
+						h1=h1-hx-5;
+						
+						
+					}
+					else if(h2>=hx)
+					{
+
+						group_2.addElement(Panel_Array.getItemAt(i) as IVisualElement);
+						h2=h2-hx-5;
+						
+					}
+					else if(h3>=hx)
+					{
+						h3=h3-hx-5;
+						group_3.addElement(Panel_Array.getItemAt(i) as IVisualElement);
+					}
+					
+				}
+				
+
+			}
+
+			
+		]]>
+	</fx:Script>
+	
+	<s:HGroup width="100%" height="100%">
+		<s:HGroup width="300" height="100%">
+		  <s:VGroup  id="group_1" width="293" height="100%">
+		  </s:VGroup>
+		  <s:Rect height="100%" width="1" x="0" y="0">
+				<s:fill>
+					<s:BitmapFill source="@Embed('images/line.png')"/>
+				</s:fill>
+		  </s:Rect>
+		</s:HGroup>
+		<s:HGroup width="300" height="100%">
+		  <s:VGroup  id="group_2" width="293" height="100%">	
+		  </s:VGroup>
+		  <s:Rect height="100%" width="1" x="0" y="0">
+			<s:fill>
+				<s:BitmapFill source="@Embed('images/line.png')"/>
+			</s:fill>
+		  </s:Rect>
+		</s:HGroup>
+		<s:HGroup width="300" height="100%">
+		  <s:VGroup  id="group_3" width="293" height="100%">
+		  </s:VGroup>
+		  <s:Rect height="100%" width="1" x="0" y="0">
+			  <s:fill>
+				  <s:BitmapFill source="@Embed('images/line.png')" alpha="0.1"/>
+			  </s:fill>
+		  </s:Rect>
+		</s:HGroup>
+	</s:HGroup>
+</s:Panel>

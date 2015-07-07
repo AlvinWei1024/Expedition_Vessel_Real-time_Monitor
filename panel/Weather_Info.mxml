@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:anychart="com.anychart.*"
+		 initialize="initi()"  width="300" height="320">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:WebService id="bdwc" useProxy="false">
+			
+			<s:operation name="getInfobyId"
+						 fault="faultmsg(event)"
+						 result="getInfobyId(event)"/>
+		</s:WebService>
+		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+			import flashx.textLayout.formats.Float;
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import shou.*;
+			
+			private var result_Info:Array = new Array;//返回结果数据
+			public var flag:int;
+			public var timer:Timer = new Timer(5000);
+			private var timerChart:Timer=new Timer(400);//加载刷新数据
+			private var direction:Number=0;
+			private var speed:Number=0;
+			private var temp:Number=0;
+			private var direction_J:Number=0;
+			private var speed_J:Number=0;
+			private var temp_J:Number=0;
+            public var url:String;
+			
+			public function initi():void
+			{
+				this.bdwc.wsdl = this.url;
+                init();
+				updateChart();
+				timerChart.addEventListener(TimerEvent.TIMER,timerChartHandler);
+				timerChart.start();
+				timer.addEventListener(TimerEvent.TIMER, timeHandler);
+				timer.start();
+			}
+			public function init():void {
+				//获取WESTHER表信息
+				//var strSqlWService4:String = "select * from (select t_log, WINDANGLE,WINDSPEED,TEMPERATURE from hd_WEATHER order by t_log DESC) where rownum=1";
+				var strSqlWService4:String = "select * from (select T_LOG, MWINDDIR_TRUE AS WINDANGLE, MWINDSPEED_TRUE AS WINDSPEED, TEMP AS TEMPERATURE from CJ_TEMP_WEATHER order by T_LOG DESC) where rownum=1";
+				
+				bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService4));
+				
+				
+			}
+			
+			
+			private function timerChartHandler(e:TimerEvent):void
+			{
+				
+				
+				//direction=direction + (Math.round(Math.random() * (10- -10)) + -10)/10; //-1到+1之间的随机数
+				//speed=speed + (Math.round(Math.random() * (10- -10)) + -10)/10;//-1到+1之间的随机数
+				//temp=temp+ (Math.round(Math.random() * (10- -10)) + -10)/10;   //-1到+1之间的随机数
+				direction = direction_J + (Math.round(Math.random() * (2- -2)) + -2)/10;
+				speed = speed_J + (Math.round(Math.random() * (4)) -2)/10;
+				temp = temp_J + (Math.round(Math.random() * (2- -2)) + -2)/100;
+				chart.updatePointerData("winddirection","d",direction);
+				chart.updatePointerData("windspeed","s",speed);
+				chart.updatePointerData("temperature","t",temp);
+				
+			}
+			public function timeHandler(evt:TimerEvent):void {
+				init();
+				
+			}
+			private function faultmsg(event:FaultEvent):void {
+				Alert.show(event.message.toString());
+			}
+			
+			protected function getInfobyId(event:ResultEvent):void {
+				result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+				
+				if (result_Info.length > 0) {
+					if (result_Info[0].hasOwnProperty("WINDANGLE")) 
+					{
+						//direction=parseInt(result_Info[0].WINDANGLE)+(Math.ceil(Math.random()*10));
+						//speed=parseFloat(result_Info[0].WINDSPEED)+(Math.random());
+						//temp=parseFloat(result_Info[0].TEMPERATURE)+(Math.random()*10);
+						direction_J=parseFloat(result_Info[0].WINDANGLE);
+						if(direction_J==-999||direction_J==-9999) direction_J=0;
+						speed_J=parseFloat(result_Info[0].WINDSPEED);
+						if(speed_J==-999||speed_J==-9999) speed_J=0;
+						temp_J=parseFloat(result_Info[0].TEMPERATURE);
+						if(temp_J==-999||temp_J==-9999) temp_J=0;
+					}
+				}
+				
+			}
+			
+			
+			private function updateChart():void
+			{
+				chart.anychartXML=
+					<anychart>
+							   <margin all="10" />
+								<settings>
+									<animation enabled="true" />
+								</settings>
+							   <gauges>
+								   <gauge>
+									   <chart_settings>
+										   <title enabled="true" padding="10">
+											   <text>  </text>
+										   </title>
+                                            <chart_background enabled="false"/> 
+									   </chart_settings>
+											<circular name="windDirection" x="-4" y="-12" width="60" height="60">
+											   <axis radius="34" start_angle="180" sweep_angle="360" size="10">
+												   <scale minimum="0" maximum="360" major_interval="30" minor_interval="15" inverted="false"/>
+												   <labels enabled="true" show_first="false" align="Outside" padding="5">
+													   <format>{"{%Value}{numDecimals:0}°"}</format>
+													   <font family="Arial" size="10" bold="true" color="#494949"/>
+												   </labels>
+												   <scale_bar enabled="true">
+													   <fill color="#E0E0E0"/>
+													   <border color="#D3D2CC"/>
+												   </scale_bar>
+												   <minor_tickmark enabled="false"/>
+												   <major_tickmark shape="Rectangle" align="Outside" padding="0" length="6" width="3">
+													   <fill  color="#494949"/>
+												   </major_tickmark>
+											   </axis>
+											   <frame>
+												   <inner_stroke enabled="false"/>
+												   <outer_stroke enabled="true" thickness="4">
+													   <fill type="Gradient">
+														   <gradient>
+															   <key color="#FEFEFE"/>
+															   <key color="#CECECE"/>
+														   </gradient>
+													   </fill>
+													   <border enabled="true" color="Black" opacity="0.1"/>
+												   </outer_stroke>
+												   <background>
+													   <fill type="Solid" color="White"/>
+													   <border color="#D3D2CC"/>
+													   <effects enabled="true">
+														   <inner_shadow enabled="true" distance="3" opacity="0.2"/>
+													   </effects>
+												   </background>
+												   <effects enabled="true">
+													   <drop_shadow enabled="true" distance="3" opacity="0.3"/>
+												   </effects>
+											   </frame>
+											   <pointers>
+												   <pointer type="Marker" value="120" name="d">
+													   <marker_pointer_style width="30" height="20" align="Inside" padding="-4"/>
+													   <label enabled="true" under_pointers="true">
+														   <position placement_mode="ByPoint" halign="Center" valign="Center" x="50" y="55"/>
+														   <format>{"{%Value}{numDecimals:1}"}</format>
+														   <background enabled="true">
+															   <border enabled="true" type="Solid" color="Black" opacity="0.1"/>
+															   <fill type="Gradient">
+																   <gradient angle="90">
+																	   <key color="White"/>
+																	   <key color="Rgb(230,230,230)"/>
+																	   <key color="White"/>
+																   </gradient>
+															   </fill>
+															   <corners type="Rounded" all="3"/>
+															   <effects enabled="true">
+																   <drop_shadow enabled="false"/>
+																   <inner_shadow enabled="true" distance="2" blur_x="2" blur_y="2" opacity="0.3"/>
+															   </effects>
+														   </background>
+													   </label>
+												   </pointer>
+											   </pointers>
+											   <labels>
+												   <label under_pointers="true">
+													   <position placement_mode="ByPoint" halign="Center" valign="Center" x="50" y="35"/>
+													   <format>风向</format>
+													   <font family="Arial" size="15" color="Rgb(0,0,100)" bold="true"/>
+													   <background enabled="false"/>
+												   </label>
+											   </labels>
+										   </circular>
+											  <circular name="windSpeed" x="-4" y="46" width="60" height="60">
+											   <axis radius="36" start_angle="20" sweep_angle="320" size="10">
+												   <scale minimum="0" maximum="40" major_interval="5" minor_interval="20" inverted="false"/>
+												   <labels show_first="true" align="Outside" padding="5">
+													   <format>{"{%Value}{numDecimals:0}"}</format>
+													   <font family="Arial" size="11" bold="true" color="#494949"/>
+												   </labels>
+												   <scale_bar>
+													   <fill color="#E0E0E0"/>
+													   <border color="#D3D2CC"/>
+												   </scale_bar>
+												   <minor_tickmark enabled="false"/>
+												   <major_tickmark shape="Rectangle" align="Outside" padding="0" length="6" width="3">
+													   <fill color="#494949"/>
+												   </major_tickmark>
+																		  <color_ranges>
+													   <color_range start="0" end="25" align="Inside" padding="0" color="#90F18A">
+														   <border color="DarkColor(%Color)" opacity="0.5"/>
+													   </color_range>
+													   <color_range start="80" end="140" align="Inside" padding="0" color="#F0060F">
+														   <fill opacity="0.7"/>
+														   <border color="DarkColor(%Color)" opacity="0.5"/>
+													   </color_range>
+												   </color_ranges>
+											   </axis>                       <frame>
+												   <inner_stroke enabled="false"/>
+												   <outer_stroke enabled="true" thickness="4">
+													   <fill type="Gradient">
+														   <gradient>
+															   <key color="#FEFEFE"/>
+															   <key color="#CECECE"/>
+														   </gradient>
+													   </fill>
+													   <border enabled="true" color="Black" opacity="0.1"/>
+												   </outer_stroke>
+												   <background>
+													   <fill type="Solid" color="White"/>
+													   <border color="#D3D2CC"/>
+													   <effects enabled="true">
+														   <inner_shadow enabled="true" distance="3" opacity="0.2"/>
+													   </effects>
+												   </background>
+												   <effects enabled="true">
+													   <drop_shadow enabled="true" distance="3" opacity="0.3"/>
+												   </effects>
+											   </frame>
+											   <pointers>
+												   <pointer type="Needle" value="34" name="s">
+													   <tooltip enabled="false"/>
+													   <label enabled="true" under_pointers="true">
+														   <position placement_mode="ByPoint" halign="Center" valign="Center" x="50" y="65"/>
+														   <format>{"{%Value}{numDecimals:1}"}</format>
+														   <background enabled="true">
+															   <border enabled="true" type="Solid" color="Black" opacity="0.1"/>
+															   <fill type="Gradient">
+																   <gradient angle="90">
+																	   <key color="White"/>
+																	   <key color="Rgb(230,230,230)"/>
+																	   <key color="White"/>
+																   </gradient>
+															   </fill>
+															   <corners type="Rounded" all="3"/>
+															   <effects enabled="true">
+																   <drop_shadow enabled="false"/>
+																   <inner_shadow enabled="true" distance="2" blur_x="2" blur_y="2" opacity="0.3"/>
+															   </effects>
+														   </background>
+													   </label>
+												   </pointer>
+											   </pointers>
+											   <labels>
+												   <label under_pointers="true">
+													   <position placement_mode="ByPoint" halign="Center" valign="Center" x="50" y="35"/>
+													   <format>风速</format>
+													   <font family="Arial" size="15" color="Rgb(0,0,100)" bold="true"/>
+													   <background enabled="false"/>
+												   </label>
+											   </labels>
+										   </circular>
+										<linear name="temperature" x="61" y="-9" height="100" width="39">
+											   <axis end_margin="10">
+												   <scale minimum="-30" maximum="40" major_interval="10"/>
+												   <scale_bar enabled="true">
+													   <fill enabled="true" type="Gradient">
+														   <gradient angle="0">
+															   <key color="Rgb(220,220,220)"/>
+															   <key color="Rgb(245,245,245)"/>
+															   <key color="Rgb(220,220,220)"/>
+														   </gradient>
+													   </fill>
+													   <border enabled="true" color="Rgb(190,190,190)"/>
+													   <effects enabled="true">
+														   <drop_shadow enabled="true" color="Black" distance="1" blur_x="2" blur_y="2" opacity="0.3"/>
+													   </effects>                           </scale_bar>
+												   <scale_line enabled="false"/>
+												   <major_tickmark enabled="true" shape="Line" align="Inside" length="3" >
+													   <border enabled="true" color="#494949"/>
+												   </major_tickmark>
+												   <minor_tickmark enabled="true" shape="Line" align="Inside" length="1.5">
+													   <border enabled="true" color="#494949"/>
+												   </minor_tickmark>
+												   <labels enabled="true" align="Inside" padding="5">
+													   <format>{"{%Value}{numDecimals:0}°"}</format>
+													   <font family="Arial" size="11" bold="true" color="#494949"/>
+												   </labels>
+											   </axis>
+											   <extra_axes>
+												   <axis end_margin="10">
+												   <scale minimum="-20" maximum="100" major_interval="20"/>
+												   <scale_bar enabled="false"/>
+												   <scale_line enabled="false"/>
+												   <major_tickmark enabled="true" shape="Line" align="Outside" length="3">
+													   <border enabled="true" color="#494949"/>
+												   </major_tickmark>
+												   <minor_tickmark enabled="true" shape="Line" align="Outside" length="1.5">
+													   <border enabled="true" color="#494949"/>
+												   </minor_tickmark>
+												   <labels enabled="true" align="Outside" padding="5">
+													   <format>{"{%Value}{numDecimals:0}°"}</format>
+													   <font family="Arial" size="11" bold="true" color="#494949"/>
+												   </labels>
+											   </axis>
+											   </extra_axes>
+											   <frame enabled="true" type="Rectangular">
+												   <corners type="Rounded" all="5"/>
+												   <outer_stroke enabled="true" thickness="3">
+													   <fill type="Gradient">
+														   <gradient>
+															   <key color="#FEFEFE"/>
+															   <key color="#CECECE"/>
+														   </gradient>
+													   </fill>
+													   <border enabled="true" color="Black" opacity="0.1"/>
+												   </outer_stroke>
+												   <inner_stroke enabled="false"/>
+												   <background>
+													   <fill type="Solid" color="White">
+														   <gradient>
+															   <key position="0" color="#FFFFFF"/>
+															   <key position="0.3" color="#EEEEEE"/>
+															   <key position="1" color="#FEFEFE"/>
+														   </gradient>
+													   </fill>
+													   <border enabled="false" type="Gradient" thickness="6"/>
+													   <effects enabled="true">
+														   <inner_shadow enabled="true" distance="3" opacity="0.2"/>
+													   </effects>
+												   </background>
+												   <effects enabled="true">
+													   <drop_shadow enabled="true" distance="1" opacity="0.3"/>
+												   </effects>
+											   </frame>
+											   <pointers>
+												   <label enabled="true">
+													 <position placement_mode="ByPoint" x="75" y="117"/>
+														<background enabled="true">
+															   <border enabled="true" type="Solid" color="Black" opacity="0.1"/>
+															   <fill type="Gradient">
+																   <gradient angle="90">
+																	   <key color="White"/>
+																	   <key color="Rgb(230,230,230)"/>
+																	   <key color="White"/>
+																   </gradient>
+															   </fill>
+															   <corners type="Rounded" all="3"/>
+															   <effects enabled="true">
+																   <drop_shadow enabled="false"/>
+																   <inner_shadow enabled="true" distance="2" blur_x="2" blur_y="2" opacity="0.3"/>
+															   </effects>
+														   </background>
+												   </label>
+												   <pointer type="Thermometer" value="9" color="#F0673B" name="t"/>
+											   </pointers>
+											   <labels>
+												   <label>
+													   <position placement_mode="ByPoint" halign="Center" valign="Center" x="25" y="95"/>
+													   <format>C°</format>
+													   <font family="Arial" size="12" bold="true" color="Rgb(0,0,99)"/>
+													   <background enabled="false"/>
+												   </label>
+												   <label>
+													   <position placement_mode="ByPoint" halign="Center" valign="Center" x="77" y="95"/>
+													   <format>F°</format>
+													   <font family="Arial" size="12" bold="true" color="Rgb(0,0,99)"/>
+													   <background enabled="false"/>
+												   </label>
+												  <label>
+													   <position placement_mode="ByPoint" halign="Center" valign="Center" x="20" y="109"/>
+													   <format>气 温</format>
+													   <font family="Arial" size="15" bold="true" color="Rgb(0,0,99)"/>
+													   <background enabled="false"/>
+												   </label>
+											   </labels>                       
+										</linear>                                          
+											  
+														
+									   </gauge>
+								   </gauges>
+								</anychart>;              
+				
+				
+			}
+			
+			
+			
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	<s:VGroup paddingTop="5">
+		<s:HGroup paddingLeft="5">
+			<s:Image source="images/Icons/weather.png" width="40" height="40" horizontalCenter="true"></s:Image>
+			<s:Label width="90" text="天气信息" fontSize="15" paddingTop="15"/>
+		</s:HGroup>
+		<s:HGroup paddingLeft="0" paddingTop="-20">
+			<anychart:AnyChartFlex x="0" y="0" width="280" height="310" id="chart"/>
+			
+		</s:HGroup>
+		<s:HGroup paddingLeft="25">
+			
+		</s:HGroup>
+	</s:VGroup>
+</s:Group>

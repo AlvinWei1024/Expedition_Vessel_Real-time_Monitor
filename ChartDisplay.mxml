@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+               xmlns:s="library://ns.adobe.com/flex/spark"
+               xmlns:mx="library://ns.adobe.com/flex/mx"
+               xmlns:amcharts="http://www.amcharts.com/com_internal"
+               backgroundColor="#FFFFFF"
+               minWidth="800" minHeight="400" height="400" title="数据统计"
+               creationComplete="application1_creationCompleteHandler(event)"  initialize="initi()"
+               close="PopUpManager.removePopUp(this);">  <!--creationComplete-initialize-->
+    <fx:Declarations>
+        <!-- 将非可视元素（例如服务、值对象）放在此处 -->
+        <s:WebService id="bdwc" useProxy="false">
+            <s:operation name="getInfobyId"
+                         fault="faultmsg(event)"
+                         result="getInfobyId(event)"/>
+        </s:WebService>
+        <mx:DateFormatter id="dateTime" formatString="yyyy-MM-dd HH24:mi:ss"/>
+    </fx:Declarations>
+    <fx:Script>
+		<![CDATA[
+        import com.adobe.serialization.json.JSON;
+        import com.amcharts.events.GraphEvent;
+        import com.amcharts.stock.events.StockBulletEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.Alert;
+        import mx.events.FlexEvent;
+        import mx.managers.PopUpManager;
+        import mx.rpc.events.FaultEvent;
+        import mx.rpc.events.ResultEvent;
+
+        import shou.XMLOperator;
+
+        [Bindable]
+        private var result_Info:Array = new Array;//执行SQL查询语句后返回的结果Array
+
+
+        private var flag_attri:int;//功能执行标记
+        private var start_Date:String;//选择的开始时间
+        private var end_Date:String;//选择的结束时间
+        [Bindable]
+        private var TimeArr:ArrayCollection = new ArrayCollection(); //与时间条绑定的ArrayCollection
+        [Bindable]
+        private var chartForData:ArrayCollection;
+        [Bindable]
+        private var chartData1:ArrayCollection = new ArrayCollection();//图标绑定的数据集
+        [Bindable]
+        private var chartData2:ArrayCollection = new ArrayCollection();
+        public var url:String;
+
+        public function initi():void
+        {
+            this.bdwc.wsdl = this.url;
+        }
+        private function getGC_Btn():void  //获取高程数据
+        {
+            flag_attri = 0;
+            BtnCol_Change();
+			//var strSqlWService:String = "select ALTITUDE AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_GPS t  order by T_LOG";// //获取水深数据
+			//bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+        }
+
+        private function getHS_Btn():void {
+            flag_attri = 1;
+            BtnCol_Change();
+			//var strSqlWService:String = "select SPEED AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_GPS t  order by T_LOG";// //获取水深数据
+			//bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+        }
+
+        private function getFS_Btn():void {
+            flag_attri = 2;
+            BtnCol_Change();
+			var strSqlWService:String = "select WINDSPEED AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_WEATHER t  order by T_LOG";// //获取水深数据
+			bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+        }
+
+        private function getWD_Btn():void {
+            flag_attri = 3;
+            BtnCol_Change();
+			var strSqlWService:String = "select TEMPERATURE AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_WEATHER t  order by T_LOG";// //获取水深数据
+			bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+        }
+
+        private function getSD_Btn():void {
+            flag_attri = 4;
+            BtnCol_Change();
+			var strSqlWService:String = "select HUMIDITY AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_WEATHER t  order by T_LOG";// //获取水深数据
+			bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+        }
+
+        private function getQY_Btn():void {
+            flag_attri = 5;
+            BtnCol_Change();
+			var strSqlWService:String = "select BAROMETRIC AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_WEATHER t  order by T_LOG";// //获取水深数据
+			bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+        }
+
+        private function getSS_Btn():void //获取水深数据
+        {
+            flag_attri = 6;
+            BtnCol_Change();
+            //获取水深数据WHERE T_LOG between to_date('2013-01-25 17:28:56','yyyy-MM-dd HH24:mi:ss') and to_date('2013-01-29 06:29:31','yyyy-MM-dd HH24:mi:ss')
+            var strSqlWService:String = "select DEPTH AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_DEPTH t  order by T_LOG";// //获取水深数据
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+        }
+
+        private function getSW_Btn():void {
+            flag_attri = 7;
+            BtnCol_Change();
+            var strSqlWService:String = "select WATERTEMP AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_SBE t  order by T_LOG";   //获取水温数据WHERE T_LOG between to_date('2013-01-25 17:28:56','yyyy-MM-dd HH24:mi:ss') and to_date('2013-01-29 06:29:31','yyyy-MM-dd HH24:mi:ss')
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+
+        }
+
+        private function getYD_Btn():void {
+            flag_attri = 8;
+            BtnCol_Change();
+            var strSqlWService:String = "select SALT AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_SBE t order by T_LOG";   //获取盐度数据 WHERE T_LOG between to_date('2013-01-25 17:28:56','yyyy-MM-dd HH24:mi:ss') and to_date('2013-01-29 06:29:31','yyyy-MM-dd HH24:mi:ss')
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+
+        }
+
+        private function getYG_Btn():void {
+            flag_attri = 9;
+            BtnCol_Change();
+            var strSqlWService:String = "select CHLA AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_SBE t order by T_LOG";  //获取荧光数据WHERE T_LOG between to_date('2013-01-25 17:28:56','yyyy-MM-dd HH24:mi:ss') and to_date('2013-01-29 06:29:31','yyyy-MM-dd HH24:mi:ss')
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+
+        }
+
+        private function getYSYJW_Btn():void {
+            flag_attri = 10;
+            BtnCol_Change();
+            var strSqlWService:String = "select CDOM AS DATAVALUE, to_char(T_LOG,'yyyy-MM-dd HH24:mi:ss') AS DATETIME from HD_SBE t  order by T_LOG";   //获取有色溶解有机物数据WHERE T_LOG between to_date('2013-01-25 17:28:56','yyyy-MM-dd HH24:mi:ss') and to_date('2013-01-29 06:29:31','yyyy-MM-dd HH24:mi:ss')
+            bdwc.getInfobyId(XMLOperator.GetSelectWebServiceSql(strSqlWService));
+
+        }
+
+        private function BtnCol_Change():void     //当前按钮控件的颜色突出显示
+        {
+            switch (flag_attri) {
+                case 0:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#0099cc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 1:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#0099cc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 2:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#0099cc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 3:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#0099cc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 4:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#0099cc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 5:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#0099cc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 6:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#0099cc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 7:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#0099cc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 8:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#0099cc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 9:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#0099cc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#cccccc");
+                    break;
+                }
+                case 10:
+                {
+                    gaochenBtn.setStyle("chromeColor", "#cccccc");
+                    hangSuBtn.setStyle("chromeColor", "#cccccc");
+                    fengSuBtn.setStyle("chromeColor", "#cccccc");
+                    wenduBtn.setStyle("chromeColor", "#cccccc");
+                    shiduBtn.setStyle("chromeColor", "#cccccc");
+                    qiyaBtn.setStyle("chromeColor", "#cccccc");
+                    shuishenBtn.setStyle("chromeColor", "#cccccc");
+                    shuiwenBtn.setStyle("chromeColor", "#cccccc");
+                    yanduBtn.setStyle("chromeColor", "#cccccc");
+                    yingguangBtn.setStyle("chromeColor", "#cccccc");
+                    youseyoujiwBtn.setStyle("chromeColor", "#0099cc");
+                    break;
+                }
+            }
+        }
+
+
+        private function faultmsg(event:FaultEvent):void {	    //调用服务出错执行方法
+            Alert.show(event.message.toString());
+        }
+
+        private function getInfobyId(event:ResultEvent):void   //返回SQL语句在数据库查询的结果
+        {
+            result_Info = com.adobe.serialization.json.JSON.decode(event.result.toString().substring(12, event.result.toString().length - 1)) as Array;
+            generateChartData();
+            /*	if(result_Info.length>0)
+             {
+             for(var i:int=0;i<result_Info.length;i++)
+             {
+             chartForData.addItem({date:result_Info[i].DATAVALUE, a:result_Info[i].DATETIME});
+             }
+             }
+             return result_Info;
+             */
+        }
+
+        private function generateChartData():void   //生成图所绑定的数据集
+        {
+            var firstDate:Date = new Date();
+            firstDate.setDate(firstDate.getDate());
+            chartData1.removeAll();
+            if (result_Info.length > 0) {
+                for (var i:int = 0; i < result_Info.length; i++) {
+
+                    var newDate:Date = new Date(firstDate);
+                    //newDate.setDate(newDate.getDate() + i);
+                    var Month_C:Number;
+                    var test_str:String;
+                    //2013-01-25 17:28:56
+                    newDate.fullYear = Number(result_Info[i].DATETIME.substr(0, 4));
+                    Month_C = Number(result_Info[i].DATETIME.substr(5, 2)) - 1;
+                    newDate.month = Month_C;
+                    newDate.date = Number(result_Info[i].DATETIME.substr(8, 2));
+                    newDate.hours = Number(result_Info[i].DATETIME.substr(11, 2));
+                    newDate.minutes = Number(result_Info[i].DATETIME.substr(14, 2));
+                    newDate.seconds = Number(result_Info[i].DATETIME.substr(17, 2));
+                    chartData1.addItem({date: newDate, a: result_Info[i].DATAVALUE});
+                }
+            }
+            //Alert.show(chartData1[chartData1.length-1].date.toString()+":  "+chartData1[chartData1.length-1].a.toString());
+            //Alert.show(chartData1[0].date.toString()+":  "+chartData1[0].a.toString());
+
+            //Alert.show(chartData1[chartData1.length-1].a.toString());
+            /*	for(var i:Number = 0; i < 1000; i++)
+             {
+             var newDate:Date = new Date(firstDate);
+             newDate.setDate(newDate.getDate() + i);
+             var a1:Number = Math.round(Math.random() * (40 + i)) + 100 + i;
+             var b1:Number   = Math.round(Math.random() * (1000 + i)) + 500 + i * 2;
+             chartData1.addItem({date:newDate, a:a1, b:b1});
+             }
+             */
+        }
+
+        protected function application1_creationCompleteHandler(event:FlexEvent):void  //页面完成初始化事件绑定的方法
+        {
+            getYSYJW_Btn();
+        }
+
+
+        private function handleEventClick(event:StockBulletEvent):void {
+            trace(event.eventObject.description);
+        }
+
+        protected function stockpanel1_clickGraphItemHandler(event:GraphEvent):void  //点击图标某一个点是触发时间绑定的方法
+        {
+            // TODO Auto-generated method stub
+         //   Alert.show(event.item.category.toString());
+          //  Alert.show(event.item.index.toString());
+         //   Alert.show(event.index.toString());
+        }
+
+        protected function chart2_clickGraphItemHandler(event:GraphEvent):void {
+
+        }
+        ]]>
+		
+		
+	</fx:Script>
+
+    <s:VGroup width="100%" height="80%" horizontalAlign="left" paddingBottom="5" paddingTop="5" paddingLeft="5"
+              paddingRight="5">
+        <s:HGroup>
+            <s:Button id="gaochenBtn" x="0" y="3" label="高程" click="getGC_Btn()"/>
+            <s:Button id="hangSuBtn" x="69" y="3" label="航速" click="getHS_Btn()"/>
+            <s:Button id="fengSuBtn" x="138" y="3" label="风速" click="getFS_Btn()"/>
+            <s:Button id="wenduBtn" x="207" y="3" label="气温" click="getWD_Btn()"/>
+            <s:Button id="shiduBtn" x="276" y="3" label="湿度" click="getSD_Btn()"/>
+            <s:Button id="qiyaBtn" x="345" y="3" label="气压" click="getQY_Btn()"/>
+            <s:Button id="shuishenBtn" x="414" y="3" label="水深" click="getSS_Btn()"/>
+            <s:Button id="shuiwenBtn" x="483" y="3" label="水温" click="getSW_Btn()"/>
+            <s:Button id="yanduBtn" x="552" y="3" label="盐度" click="getYD_Btn()"/>
+            <s:Button id="yingguangBtn" x="621" y="3" label="荧光" click="getYG_Btn()"/>
+            <s:Button id="youseyoujiwBtn" x="690" y="3" label="有色溶解有机物" click="getYSYJW_Btn()"/>
+        </s:HGroup>
+        <amcharts:AmStockChart width="100%" height="100%" mainDataSet="{ds1}"
+                               clickStockEvent="{handleEventClick(event)}">
+            <amcharts:dataSets>
+                <amcharts:DataSet id="ds1" dataProvider="{chartData1}" categoryField="date">
+                    <amcharts:fieldMappings>
+                        <amcharts:FieldMapping fromField="a" toField="value"/>
+                    </amcharts:fieldMappings>
+                </amcharts:DataSet>
+            </amcharts:dataSets>
+            <amcharts:panels>
+                <amcharts:StockPanel height="40%" showCategoryAxis="true"
+                                     clickGraphItem="stockpanel1_clickGraphItemHandler(event)">
+                    <amcharts:stockLegend>
+                        <amcharts:StockLegend/>
+                    </amcharts:stockLegend>
+                    <amcharts:stockGraphs>
+                        <amcharts:StockGraph id="g1" valueField="value" compareField="value" comparable="true"
+                                             type="line" lineThickness="2" bullet="round"/>
+                    </amcharts:stockGraphs>
+                </amcharts:StockPanel>
+                <!--
+                    <amcharts:StockPanel height="40%" clickGraphItem="stockpanel1_clickGraphItemHandler(event)">
+                        <amcharts:stockGraphs>
+                            <amcharts:StockGraph id="g2" cornerRadiusTop="3" valueField="value" type="column" fillAlphas="[1]" lineAlpha="0"/>
+                        </amcharts:stockGraphs>
+                    </amcharts:StockPanel>
+                -->
+            </amcharts:panels>
+            <!--
+                    <amcharts:dataSetSelector>
+                        <amcharts:DataSetSelector position="right" width="160"/>
+                    </amcharts:dataSetSelector>
+            -->
+
+            <amcharts:periodSelector>
+                <amcharts:PeriodSelector>
+                    <amcharts:periods>
+                        <amcharts:PeriodButton label="10天" period="DD" count="10"/>
+                        <amcharts:PeriodButton label="1个月" period="MM" count="1"/>
+                        <amcharts:PeriodButton selected="true" label="2个月" period="MM" count="2"/>
+                        <amcharts:PeriodButton label="6个月" period="MM" count="6"/>
+                        <amcharts:PeriodButton label="1年" period="YYYY" count="1"/>
+                        <amcharts:PeriodButton label="MAX" period="MAX"/>
+                    </amcharts:periods>
+                </amcharts:PeriodSelector>
+            </amcharts:periodSelector>
+
+            <amcharts:stockEventsSettings>
+                <amcharts:StockEventsSettings backgroundColor="#CDF52C"/>
+            </amcharts:stockEventsSettings>
+
+            <amcharts:chartScrollbarSettings>
+                <amcharts:ChartScrollbarSettings height="30" graph="{g1}"/>
+            </amcharts:chartScrollbarSettings>
+
+            <amcharts:chartCursorSettings>
+                <amcharts:ChartCursorSettings showValueAxisValue="true" valueBalloonsEnabled="true" crosshair="true"/>
+            </amcharts:chartCursorSettings>
+
+            <amcharts:panelsSettings>
+                <amcharts:PanelsSettings startDuration="1" sequencedAnimation="true"/>
+            </amcharts:panelsSettings>
+
+        </amcharts:AmStockChart>
+
+
+        <!--
+            <amcharts:AmSerialChart id="chart2" x="12" y="333" width="100%" height="40%" angle="0"
+                                    categoryField="date" dataProvider="{chartData1}" clickGraphItem="chart2_clickGraphItemHandler(event)"
+                                    depth3D="30" startDuration="1" visible="true">
+
+                <amcharts:categoryAxis>
+                    <amcharts:CategoryAxis gridPosition="start"/>
+                </amcharts:categoryAxis>
+                <amcharts:graphs>
+                    <amcharts:AmGraph title="折线图" id="g2" valueField="a" type="line" lineThickness="2" bullet="round"/>
+                </amcharts:graphs>
+            </amcharts:AmSerialChart>
+
+        -->
+
+    </s:VGroup>
+
+
+</s:TitleWindow>
